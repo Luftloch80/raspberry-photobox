@@ -74,6 +74,7 @@ Nach Änderungen: `sudo systemctl restart photobox`.
 1. Drucker per USB oder WLAN anschließen.
 2. CUPS-Weboberfläche im Browser öffnen: `https://<pi-adresse>:8631` → *Verwaltung* →
    *Drucker hinzufügen* (Anmeldung mit dem Pi-Benutzer und seinem Passwort).
+   Meldet CUPS „Web interface is disabled“: `sudo cupsctl WebInterface=yes`.
    Caddy stellt CUPS auf Port **8631** mit dem Photobox-Zertifikat bereit. Nicht direkt
    Port `631` verwenden: Dort leitet CUPS auf sein eigenes Zertifikat um, und die Seite
    lädt im Browser ständig neu.

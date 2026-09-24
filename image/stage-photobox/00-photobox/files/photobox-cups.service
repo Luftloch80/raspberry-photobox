@@ -6,7 +6,7 @@ ConditionPathExists=!/etc/photobox/cups-configured
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/cupsctl --remote-admin --remote-any --share-printers
+ExecStart=/usr/sbin/cupsctl --remote-admin --remote-any --share-printers WebInterface=yes
 ExecStartPost=/usr/bin/touch /etc/photobox/cups-configured
 
 [Install]

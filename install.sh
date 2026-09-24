@@ -13,7 +13,7 @@ fi
 sudo apt-get install -y python3-venv python3-pip cups printer-driver-gutenprint libjpeg-dev zlib1g-dev iw
 sudo usermod -aG lpadmin "$USER_NAME"
 # CUPS-Weboberfläche auch im Heimnetz erreichbar machen (über Caddy: https://<pi-adresse>:8631)
-sudo cupsctl --remote-admin --remote-any --share-printers
+sudo cupsctl --remote-admin --remote-any --share-printers WebInterface=yes
 sudo systemctl restart cups
 
 echo "==> Python-Umgebung einrichten"
