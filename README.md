@@ -28,7 +28,7 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Galerie mit allen Fotos, neues Foto wird hervorgehoben
 - Großansicht mit **Drucken**-Button und Anzahl der Abzüge
 - Optional: automatisch nach jeder Aufnahme drucken
-- Druckerstatus-Anzeige
+- Druckerstatus auf der Statusseite (⚙️ → „WLAN- & Druckerstatus“)
 - **Statusseite** (`/status`): WLAN/Hotspot mit verbundenen Geräten und **Schalter
   Hotspot ↔ normales WLAN**, Drucker mit Fehlern
   wie „Papier leer“, Warteschlange (abbrechen/fortsetzen), Temperatur und Speicherplatz

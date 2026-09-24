@@ -151,7 +151,7 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   background: var(--panel);
   border-left: 1px solid #2c2c3a;
 }
-.gallery header { padding: 16px 16px 8px; }
+
 .gallery h1 { font-size: 20px; margin: 0 0 6px; }
 .gallery h1 small { color: var(--muted); font-weight: 400; font-size: 15px; }
 
@@ -175,7 +175,7 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 8px 16px 16px;
+  padding: 16px;
   display: grid;
   grid-template-columns: 1fr;
   align-content: start;

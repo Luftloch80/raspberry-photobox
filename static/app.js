@@ -332,15 +332,7 @@
   }
 
   function renderThumbs() {
-    $("photoCount").textContent = photos.length ? `(${photos.length})` : "";
     thumbs.innerHTML = "";
-    if (!photos.length) {
-      const empty = document.createElement("p");
-      empty.className = "empty";
-      empty.textContent = "Noch keine Fotos – los geht's! 📸";
-      thumbs.appendChild(empty);
-      return;
-    }
     for (const p of photos) {
       const btn = document.createElement("button");
       if (p.id === newestId) btn.className = "new";
@@ -483,7 +475,6 @@
     if (ok) {
       const total = ok * n;
       toast(total > 1 ? `${total} Abzüge werden gedruckt 🖨️` : "Wird gedruckt 🖨️", "ok");
-      setTimeout(refreshPrinter, 1500);
     }
     if (lastError) toast("Drucken fehlgeschlagen: " + lastError, "error", 6000);
     // Kurze Sperre gegen versehentliches Doppel-Tippen
@@ -517,22 +508,6 @@
   $("copiesMinus").addEventListener("click", () => { setCopies(copies - 1); resetIdle(); });
   $("copiesPlus").addEventListener("click", () => { setCopies(copies + 1); resetIdle(); });
   viewer.addEventListener("click", (e) => { if (e.target === viewer) closeViewer(); });
-
-  // ---------------------------------------------------------------------
-  // Druckerstatus
-  // ---------------------------------------------------------------------
-
-  async function refreshPrinter() {
-    const el = $("printerStatus");
-    try {
-      const s = await api("/api/printer");
-      el.className = "printer " + (s.ok ? "ok" : "bad");
-      el.querySelector("span").textContent = s.status;
-    } catch (err) {
-      el.className = "printer bad";
-      el.querySelector("span").textContent = "Server nicht erreichbar";
-    }
-  }
 
   // ---------------------------------------------------------------------
   // Einstellungsdialog
@@ -590,8 +565,6 @@
 
   startCamera();
   loadPhotos();
-  refreshPrinter();
-  setInterval(refreshPrinter, 30000);
   setInterval(loadPhotosIfIdle, 60000);
   requestWakeLock();
 
