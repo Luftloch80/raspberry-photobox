@@ -118,12 +118,17 @@ case "${1:-}" in
         "$CONF" > "$CONF.tmp" && cat "$CONF.tmp" > "$CONF" && rm -f "$CONF.tmp"
     fi
     log "Hotspot-Passwort geändert"
-    # Läuft der Hotspot gerade, neu starten, damit das Passwort gilt. Im Hintergrund,
-    # damit die Photobox vorher noch antworten kann.
+    # Läuft der Hotspot gerade, neu starten, damit das Passwort gilt. Verzögert,
+    # damit die Photobox vorher noch antworten kann. Über systemd bzw. setsid, denn
+    # sudo (use_pty) beendet beim Verlassen alle Hintergrundprozesse dieses Skripts.
     if [ "$(current_wifi)" = "$CON" ]; then
       echo "restart"
-      ( sleep 3; nm --wait 30 connection up "$CON" ) > /dev/null 2>&1 &
-      disown
+      if command -v systemd-run > /dev/null; then
+        systemd-run --quiet --collect --on-active=3 --unit="photobox-hotspot-restart-$$" \
+          /usr/bin/nmcli --wait 30 connection up "$CON" > /dev/null 2>&1
+      else
+        setsid -f bash -c "sleep 3; nmcli --wait 30 connection up '$CON'" < /dev/null > /dev/null 2>&1
+      fi
     fi
     ;;
 
