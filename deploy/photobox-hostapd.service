@@ -1,0 +1,10 @@
+[Unit]
+Description=Photobox-Hotspot (hostapd)
+# Wird von /usr/local/sbin/photobox-wifi gestartet und gestoppt
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/hostapd /run/photobox/hostapd.conf
+Restart=on-failure
+RestartSec=2

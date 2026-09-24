@@ -109,6 +109,11 @@ Hinweise:
 
 ## 4. Eigener WLAN-Hotspot (für unterwegs, ohne Router)
 
+Der Hotspot läuft über **hostapd** (nicht über NetworkManager): NetworkManager bietet
+im Hotspot zusätzlich WPA-PSK-SHA256 an, das iPads bevorzugen, der WLAN-Chip älterer
+Raspberry Pis (Pi 3, Zero W) als Access Point aber nicht beherrscht – das iPad meldet
+dann „falsches Passwort“. Einstellungen stehen in `/etc/photobox/hotspot.conf`.
+
 Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 
 ```bash

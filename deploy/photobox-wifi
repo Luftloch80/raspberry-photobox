@@ -1,20 +1,32 @@
 #!/bin/bash
 # Photobox: zwischen eigenem Hotspot und normalem WLAN umschalten (läuft als root).
 #
-#   photobox-wifi hotspot   Hotspot einschalten
-#   photobox-wifi client    mit einem bekannten WLAN verbinden; klappt das nicht,
-#                           wird der Hotspot wieder eingeschaltet
-#   photobox-wifi credentials        Name und Passwort des Hotspots ausgeben (2 Zeilen)
-#   photobox-wifi set-password       neues Hotspot-Passwort von stdin setzen
+# Der Hotspot läuft über hostapd + dnsmasq statt über NetworkManager: NetworkManager
+# bietet im Hotspot immer auch WPA-PSK-SHA256 an; iPads wählen das, der WLAN-Chip
+# älterer Raspberry Pis (BCM43430) kann es als Access Point aber nicht und weist sie
+# ab ("falsches Passwort"). Mit hostapd wird genau WPA-PSK (WPA2) angeboten.
 #
+#   photobox-wifi hotspot         Hotspot einschalten
+#   photobox-wifi client          mit einem bekannten WLAN verbinden; klappt das nicht,
+#                                 wird der Hotspot wieder eingeschaltet
+#   photobox-wifi auto            beim Systemstart: je nach START in hotspot.conf
+#   photobox-wifi status          "hotspot" oder "client"
+#   photobox-wifi credentials     Name und Passwort des Hotspots ausgeben (2 Zeilen)
+#   photobox-wifi set-password    neues Hotspot-Passwort von stdin setzen
+#   photobox-wifi migrate         alten NetworkManager-Hotspot übernehmen
+#
+# Einstellungen: /etc/photobox/hotspot.conf (SSID, PASSWORD, CHANNEL, COUNTRY, START)
 # Die Photobox ruft das Skript per "sudo -n" auf (siehe /etc/sudoers.d/photobox-wifi).
 set -u
 
-CON=Photobox-Hotspot
 IFACE=wlan0
+HOTSPOT_IP=10.42.0.1
+CONF=/etc/photobox/hotspot.conf
+RUN_DIR=/run/photobox
+NM_HOTSPOT=Photobox-Hotspot          # früherer NetworkManager-Hotspot
+BOOT_CONF=/boot/firmware/photobox.txt
 LOG_TAG=photobox-wifi
-
-STATUS_LOG=/run/photobox-wifi.log   # letzte Meldungen, für die Statusseite
+STATUS_LOG=/run/photobox-wifi.log    # letzte Meldungen, für die Statusseite
 
 log() {
   logger -t "$LOG_TAG" -- "$*"
@@ -23,7 +35,7 @@ log() {
     && mv "$STATUS_LOG.tmp" "$STATUS_LOG" && chmod 644 "$STATUS_LOG"
 }
 
-# nmcli ausführen; Fehlermeldungen ins Systemprotokoll (journalctl -t photobox-wifi)
+# nmcli ausführen; Fehlermeldungen ins Protokoll
 nm() {
   local out
   if out="$(nmcli "$@" 2>&1)"; then
@@ -33,109 +45,251 @@ nm() {
   return 1
 }
 
-hotspot_up() {
-  # PMF aus: mit PMF bricht der Hotspot auf dem Raspberry-Pi-WLAN-Chip (brcmfmac)
-  # mit "Hotspot network creation took too long" ab
-  if [ "$(nmcli -g 802-11-wireless-security.pmf connection show "$CON" 2> /dev/null)" != "disable" ]; then
-    nmcli connection modify "$CON" 802-11-wireless-security.pmf disable 2> /dev/null || true
-  fi
-  nm --wait 30 connection up "$CON"
+# ---------------------------------------------------------------------------
+# Einstellungen
+# ---------------------------------------------------------------------------
+
+SSID="" PASSWORD="" CHANNEL=6 COUNTRY=DE START=fallback
+
+load_conf() {
+  [ -f "$CONF" ] || return 1
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in ''|\#*) continue ;; esac
+    key="${line%%=*}"
+    val="${line#*=}"
+    case "$key" in
+      SSID|PASSWORD|CHANNEL|COUNTRY|START) printf -v "$key" '%s' "$val" ;;
+    esac
+  done < "$CONF"
+  [[ "$CHANNEL" =~ ^([1-9]|1[0-3])$ ]] || CHANNEL=6
+  [[ "$COUNTRY" =~ ^[A-Z]{2}$ ]] || COUNTRY=DE
+  [ -n "$SSID" ] && [ ${#PASSWORD} -ge 8 ]
 }
+
+save_conf() {
+  install -d -m 755 "$(dirname "$CONF")"
+  umask 077
+  cat > "$CONF.tmp" << EOF
+# Photobox-Hotspot (wird von photobox-wifi verwaltet)
+SSID=$SSID
+PASSWORD=$PASSWORD
+CHANNEL=$CHANNEL
+COUNTRY=$COUNTRY
+# fallback = Hotspot nur, wenn beim Start kein bekanntes WLAN erreichbar ist
+# always   = beim Start immer Hotspot
+# never    = beim Start nie automatisch
+START=$START
+EOF
+  mv "$CONF.tmp" "$CONF"
+  umask 022
+}
+
+# ---------------------------------------------------------------------------
+# Hotspot (hostapd + dnsmasq)
+# ---------------------------------------------------------------------------
+
+hotspot_active() {
+  systemctl is-active --quiet photobox-hostapd
+}
+
+stop_hotspot() {
+  systemctl stop photobox-dhcp photobox-hostapd 2> /dev/null || true
+  ip addr flush dev "$IFACE" 2> /dev/null || true
+  nmcli device set "$IFACE" managed yes > /dev/null 2>&1 || true
+}
+
+write_hostapd_conf() {
+  install -d -m 755 "$RUN_DIR"
+  umask 077
+  cat > "$RUN_DIR/hostapd.conf" << EOF
+interface=$IFACE
+driver=nl80211
+ctrl_interface=/run/hostapd
+ssid=$SSID
+utf8_ssid=1
+country_code=$COUNTRY
+ieee80211d=1
+hw_mode=g
+channel=$CHANNEL
+ieee80211n=1
+wmm_enabled=1
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=CCMP
+rsn_pairwise=CCMP
+wpa_passphrase=$PASSWORD
+EOF
+  umask 022
+}
+
+start_hotspot() {
+  if ! load_conf; then
+    log "Kein Hotspot eingerichtet ($CONF fehlt) – ./setup-hotspot.sh ausführen"
+    return 1
+  fi
+  write_hostapd_conf
+
+  # WLAN-Chip vom NetworkManager an hostapd übergeben
+  nmcli device disconnect "$IFACE" > /dev/null 2>&1 || true
+  nmcli device set "$IFACE" managed no > /dev/null 2>&1 || true
+  rfkill unblock wifi 2> /dev/null || true
+  iw reg set "$COUNTRY" 2> /dev/null || true
+  ip link set "$IFACE" down 2> /dev/null || true
+  ip addr flush dev "$IFACE" 2> /dev/null || true
+  ip link set "$IFACE" up
+  ip addr add "$HOTSPOT_IP/24" dev "$IFACE"
+
+  systemctl restart photobox-hostapd
+  local i
+  for i in $(seq 1 15); do
+    if hotspot_active && iw dev "$IFACE" info 2> /dev/null | grep -q "type AP"; then
+      systemctl restart photobox-dhcp
+      log "Hotspot aktiv: '$SSID' (Kanal $CHANNEL)"
+      return 0
+    fi
+    sleep 1
+  done
+  log "hostapd startet nicht: $(journalctl -u photobox-hostapd -n 5 --no-pager -o cat 2> /dev/null | tr '\n' ' ')"
+  stop_hotspot
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# Normales WLAN (NetworkManager)
+# ---------------------------------------------------------------------------
 
 current_wifi() {
   nmcli -t -f DEVICE,STATE,CONNECTION device | awk -F: -v i="$IFACE" '$1==i && $2=="connected" {print $3}'
 }
 
+connect_client() {
+  # Bekannte WLAN-Verbindungen, höchste Priorität zuerst
+  local -a known=() targets=() ordered=()
+  local -A ssid_of=()
+  local name visible="" _
+  mapfile -t known < <(nmcli -t -f AUTOCONNECT-PRIORITY,NAME,TYPE connection show \
+             | awk -F: -v hs="$NM_HOTSPOT" '$3=="802-11-wireless" && $2!=hs {print $1":"$2}' \
+             | sort -t: -k1,1nr | cut -d: -f2-)
+  for name in "${known[@]}"; do
+    [ "$(nmcli -g 802-11-wireless.mode connection show "$name" 2> /dev/null)" = "ap" ] && continue
+    ssid_of[$name]="$(nmcli -g 802-11-wireless.ssid connection show "$name" 2> /dev/null)"
+    targets+=("$name")
+  done
+  if [ ${#targets[@]} -eq 0 ]; then
+    log "Kein normales WLAN gespeichert"
+    return 1
+  fi
+
+  # Nach dem Hotspot-Betrieb braucht die WLAN-Suche etwas: bis zu 20 s warten
+  for _ in 1 2 3 4 5; do
+    if [ -n "$(current_wifi)" ]; then
+      log "Verbunden mit '$(current_wifi)'"
+      return 0
+    fi
+    nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
+    sleep 4
+    visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
+    for name in "${targets[@]}"; do
+      grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" && break 2
+    done
+  done
+
+  # Sichtbare WLANs zuerst, dann die übrigen (NetworkManager sucht selbst nochmal)
+  for name in "${targets[@]}"; do
+    grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" && ordered+=("$name")
+  done
+  for name in "${targets[@]}"; do
+    grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" || ordered+=("$name")
+  done
+
+  for name in "${ordered[@]}"; do
+    log "Verbinde mit '$name'"
+    if nm --wait 45 connection up "$name" ifname "$IFACE"; then
+      log "Verbunden mit '$name'"
+      return 0
+    fi
+  done
+  return 1
+}
+
+switch_to_client() {
+  log "Schalte auf normales WLAN"
+  stop_hotspot
+  sleep 3
+  connect_client && return 0
+
+  # Nach dem Hotspot-Betrieb hängt der WLAN-Chip manchmal
+  log "WLAN wird zurückgesetzt"
+  nmcli radio wifi off > /dev/null 2>&1 || true
+  sleep 3
+  nmcli radio wifi on > /dev/null 2>&1 || true
+  sleep 8
+  connect_client && return 0
+
+  log "WLAN-Treiber wird neu geladen"
+  modprobe -r brcmfmac_wcc brcmfmac 2> /dev/null || modprobe -r brcmfmac 2> /dev/null || true
+  sleep 2
+  modprobe brcmfmac 2> /dev/null || true
+  sleep 12
+  nmcli device set "$IFACE" managed yes > /dev/null 2>&1 || true
+  connect_client && return 0
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+
 case "${1:-}" in
   hotspot)
     previous="$(current_wifi)"
-    log "Schalte auf Hotspot (bisher: ${previous:-keine Verbindung})"
-    rfkill unblock wifi 2> /dev/null || true
-    if hotspot_up; then
-      log "Hotspot aktiv: $(nmcli -g 802-11-wireless.ssid connection show "$CON")"
+    log "Schalte auf Hotspot (bisher: ${previous:-keine WLAN-Verbindung})"
+    if start_hotspot; then
       exit 0
     fi
-    # Hotspot klappt nicht: zurück ins vorherige WLAN, damit der Pi erreichbar bleibt
-    if [ -n "$previous" ] && [ "$previous" != "$CON" ]; then
-      log "Hotspot fehlgeschlagen – verbinde wieder mit '$previous'"
-      nm --wait 30 connection up "$previous" ifname "$IFACE" || true
-    fi
+    # Hotspot klappt nicht: zurück ins normale WLAN, damit der Pi erreichbar bleibt
+    log "Hotspot fehlgeschlagen – zurück ins normale WLAN"
+    connect_client || true
     exit 1
     ;;
 
   client)
-    log "Schalte auf normales WLAN"
-    nmcli connection down "$CON" > /dev/null 2>&1 || true
-    rfkill unblock wifi 2> /dev/null || true
-
-    # Bekannte WLAN-Verbindungen (ohne Hotspot), höchste Priorität zuerst
-    mapfile -t known < <(nmcli -t -f AUTOCONNECT-PRIORITY,NAME,TYPE connection show \
-               | awk -F: -v hs="$CON" '$3=="802-11-wireless" && $2!=hs {print $1":"$2}' \
-               | sort -t: -k1,1nr | cut -d: -f2-)
-    declare -A ssid_of=()
-    targets=()
-    for name in "${known[@]}"; do
-      [ "$(nmcli -g 802-11-wireless.mode connection show "$name" 2> /dev/null)" = "ap" ] && continue
-      ssid_of[$name]="$(nmcli -g 802-11-wireless.ssid connection show "$name" 2> /dev/null)"
-      targets+=("$name")
-    done
-
-    # Nach dem Hotspot-Betrieb braucht die WLAN-Suche etwas: bis zu 20 s warten,
-    # bis eines der bekannten WLANs auftaucht
-    visible=""
-    for _ in 1 2 3 4 5; do
-      nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
-      sleep 4
-      visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
-      for name in "${targets[@]}"; do
-        grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" && break 2
-      done
-    done
-
-    # Erst die sichtbaren WLANs versuchen, dann die übrigen (NetworkManager sucht selbst nochmal)
-    ordered=()
-    for name in "${targets[@]}"; do
-      grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" && ordered+=("$name")
-    done
-    for name in "${targets[@]}"; do
-      grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" || ordered+=("$name")
-    done
-
-    try_known() {
-      local name
-      for name in "${ordered[@]}"; do
-        if grep -Fxq -- "${ssid_of[$name]}" <<< "$visible"; then
-          log "Verbinde mit '$name'"
-        else
-          log "Verbinde mit '$name' (bei der Suche nicht gefunden, versuche trotzdem)"
-        fi
-        if nm --wait 45 connection up "$name" ifname "$IFACE"; then
-          log "Verbunden mit '$name'"
-          exit 0
-        fi
-      done
-    }
-    try_known
-
-    # Nach dem Hotspot-Betrieb hängt der WLAN-Chip manchmal: WLAN aus/an und nochmal
-    log "WLAN wird zurückgesetzt und neu versucht"
-    nmcli radio wifi off > /dev/null 2>&1 || true
-    sleep 3
-    nmcli radio wifi on > /dev/null 2>&1 || true
-    sleep 8
-    nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
-    sleep 4
-    visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
-    try_known
-
+    if switch_to_client; then
+      exit 0
+    fi
     log "Kein bekanntes WLAN erreichbar – schalte zurück auf Hotspot"
-    hotspot_up
+    start_hotspot
     exit 2
     ;;
 
+  auto)
+    load_conf || exit 0
+    case "$START" in
+      always)
+        log "Systemstart: Hotspot"
+        start_hotspot
+        ;;
+      fallback)
+        # NetworkManager etwas Zeit geben, ein bekanntes WLAN zu finden
+        for _ in $(seq 1 45); do
+          [ -n "$(current_wifi)" ] && exit 0
+          sleep 1
+        done
+        log "Systemstart: kein bekanntes WLAN – starte Hotspot"
+        start_hotspot
+        ;;
+    esac
+    ;;
+
+  status)
+    if hotspot_active; then echo hotspot; else echo client; fi
+    ;;
+
   credentials)
-    nmcli -g 802-11-wireless.ssid connection show "$CON" || exit 1
-    nmcli -s -g 802-11-wireless-security.psk connection show "$CON"
+    load_conf || exit 1
+    printf '%s\n%s\n' "$SSID" "$PASSWORD"
     ;;
 
   set-password)
@@ -145,33 +299,50 @@ case "${1:-}" in
       echo "Das Passwort muss 8 bis 63 normale Zeichen haben." >&2
       exit 1
     fi
-    if ! nm connection modify "$CON" wifi-sec.psk "$pw"; then
-      echo "Passwort konnte nicht gesetzt werden." >&2
+    if ! load_conf; then
+      echo "Kein Hotspot eingerichtet." >&2
       exit 1
     fi
+    PASSWORD="$pw"
+    save_conf
     # Beim Image steht das Passwort auch in photobox.txt (wird bei jedem Start übernommen)
-    CONF=/boot/firmware/photobox.txt
-    if [ -f "$CONF" ] && grep -q '^WLAN_PASSWORT=' "$CONF"; then
+    if [ -f "$BOOT_CONF" ] && grep -q '^WLAN_PASSWORT=' "$BOOT_CONF"; then
       PW="$pw" awk '{ if ($0 ~ /^WLAN_PASSWORT=/) { cr = ($0 ~ /\r$/) ? "\r" : ""; print "WLAN_PASSWORT=" ENVIRON["PW"] cr } else print }' \
-        "$CONF" > "$CONF.tmp" && cat "$CONF.tmp" > "$CONF" && rm -f "$CONF.tmp"
+        "$BOOT_CONF" > "$BOOT_CONF.tmp" && cat "$BOOT_CONF.tmp" > "$BOOT_CONF" && rm -f "$BOOT_CONF.tmp"
     fi
     log "Hotspot-Passwort geändert"
-    # Läuft der Hotspot gerade, neu starten, damit das Passwort gilt. Verzögert,
-    # damit die Photobox vorher noch antworten kann. Über systemd bzw. setsid, denn
-    # sudo (use_pty) beendet beim Verlassen alle Hintergrundprozesse dieses Skripts.
-    if [ "$(current_wifi)" = "$CON" ]; then
+    # Läuft der Hotspot, verzögert neu starten (Photobox soll vorher noch antworten).
+    # Über systemd, denn sudo (use_pty) beendet beim Verlassen alle Hintergrundprozesse.
+    if hotspot_active; then
       echo "restart"
-      if command -v systemd-run > /dev/null; then
-        systemd-run --quiet --collect --on-active=3 --unit="photobox-hotspot-restart-$$" \
-          /usr/bin/nmcli --wait 30 connection up "$CON" > /dev/null 2>&1
+      write_hostapd_conf
+      systemd-run --quiet --collect --on-active=3 --unit="photobox-hotspot-restart-$$" \
+        /bin/systemctl restart photobox-hostapd > /dev/null 2>&1
+    fi
+    ;;
+
+  migrate)
+    # Früheren NetworkManager-Hotspot in hotspot.conf übernehmen und entfernen
+    if [ ! -f "$CONF" ] && nmcli -g connection.id connection show "$NM_HOTSPOT" > /dev/null 2>&1; then
+      SSID="$(nmcli -g 802-11-wireless.ssid connection show "$NM_HOTSPOT")"
+      PASSWORD="$(nmcli -s -g 802-11-wireless-security.psk connection show "$NM_HOTSPOT")"
+      CHANNEL="$(nmcli -g 802-11-wireless.channel connection show "$NM_HOTSPOT")"
+      if [ "$(nmcli -g connection.autoconnect-priority connection show "$NM_HOTSPOT")" -ge 0 ] 2> /dev/null; then
+        START=always
       else
-        setsid -f bash -c "sleep 3; nmcli --wait 30 connection up '$CON'" < /dev/null > /dev/null 2>&1
+        START=fallback
       fi
+      [ "$CHANNEL" = "0" ] && CHANNEL=6
+      save_conf
+      echo "Hotspot '$SSID' übernommen."
+    fi
+    if nmcli -g connection.id connection show "$NM_HOTSPOT" > /dev/null 2>&1; then
+      nmcli connection delete "$NM_HOTSPOT" > /dev/null 2>&1 || true
     fi
     ;;
 
   *)
-    echo "Aufruf: $0 hotspot | client | credentials | set-password" >&2
+    echo "Aufruf: $0 hotspot | client | auto | status | credentials | set-password | migrate" >&2
     exit 1
     ;;
 esac

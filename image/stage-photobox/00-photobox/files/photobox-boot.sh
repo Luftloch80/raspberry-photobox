@@ -58,8 +58,8 @@ elif [ -n "$HEIM_WLAN_PASSWORT" ] && { [ ${#HEIM_WLAN_PASSWORT} -lt 8 ] || [ ${#
   HEIM_WLAN_NAME=
   START_MODUS=hotspot
 fi
-# Startmodus: Hotspot mit höchster Priorität, oder nur als Rückfallebene
-if [ "$START_MODUS" = "wlan" ]; then HOTSPOT_PRIO=-10; else HOTSPOT_PRIO=100; fi
+# Startmodus: immer Hotspot, oder nur wenn das normale WLAN nicht erreichbar ist
+if [ "$START_MODUS" = "wlan" ]; then HOTSPOT_START=fallback; else HOTSPOT_START=always; fi
 
 # ---- WLAN-Land ----
 if [ "$(cat "$STATE/wifi-country" 2> /dev/null)" != "$WLAN_LAND" ]; then
@@ -67,40 +67,20 @@ if [ "$(cat "$STATE/wifi-country" 2> /dev/null)" != "$WLAN_LAND" ]; then
 fi
 rfkill unblock wifi 2> /dev/null || true
 
-# ---- Hotspot (NetworkManager liest die Datei beim Start) ----
+# ---- Hotspot (hostapd, gestartet von photobox-wifi-auto.service) ----
+# Nicht über NetworkManager: der bietet WPA-PSK-SHA256 an, das der WLAN-Chip älterer
+# Pis als Access Point nicht kann – iPads melden dann "falsches Passwort".
+rm -f "$NM_FILE"
+install -d -m 755 /etc/photobox
 umask 077
-cat > "$NM_FILE" << NM
-[connection]
-id=Photobox-Hotspot
-uuid=6f1c2b1e-5d3a-4c8e-9a47-70b0c0ffee01
-type=wifi
-interface-name=wlan0
-autoconnect=true
-autoconnect-priority=$HOTSPOT_PRIO
-
-[wifi]
-mode=ap
-ssid=$WLAN_NAME
-band=bg
-channel=$WLAN_KANAL
-
-[wifi-security]
-key-mgmt=wpa-psk
-proto=rsn;
-pairwise=ccmp;
-group=ccmp;
-# PMF aus: mit PMF bricht der Hotspot auf dem Raspberry-Pi-WLAN-Chip (brcmfmac) ab
-pmf=1
-psk=$WLAN_PASSWORT
-
-[ipv4]
-method=shared
-address1=$HOTSPOT_IP/24
-
-[ipv6]
-method=disabled
-NM
-chmod 600 "$NM_FILE"
+cat > /etc/photobox/hotspot.conf << CONF
+# Photobox-Hotspot (erzeugt aus photobox.txt bei jedem Start)
+SSID=$WLAN_NAME
+PASSWORD=$WLAN_PASSWORT
+CHANNEL=$WLAN_KANAL
+COUNTRY=$WLAN_LAND
+START=$HOTSPOT_START
+CONF
 
 # ---- Normales WLAN (optional) ----
 HOME_FILE=/etc/NetworkManager/system-connections/Photobox-Heim-WLAN.nmconnection

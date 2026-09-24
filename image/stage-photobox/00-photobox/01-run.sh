@@ -7,6 +7,9 @@ cp -a files/photobox/. "${APP}/"
 
 install -m 755 files/photobox-boot.sh      "${ROOTFS_DIR}/usr/local/sbin/photobox-boot"
 install -m 755 files/photobox/deploy/photobox-wifi "${ROOTFS_DIR}/usr/local/sbin/photobox-wifi"
+for unit in photobox-hostapd.service photobox-dhcp.service photobox-wifi-auto.service; do
+	install -m 644 "files/photobox/deploy/${unit}" "${ROOTFS_DIR}/etc/systemd/system/${unit}"
+done
 echo "${FIRST_USER_NAME} ALL=(root) NOPASSWD: /usr/local/sbin/photobox-wifi" > "${ROOTFS_DIR}/etc/sudoers.d/photobox-wifi"
 chmod 440 "${ROOTFS_DIR}/etc/sudoers.d/photobox-wifi"
 install -m 644 files/photobox-boot.service "${ROOTFS_DIR}/etc/systemd/system/photobox-boot.service"
@@ -24,6 +27,8 @@ install -m 644 files/photobox.txt "${APP}/photobox.txt.default"
 on_chroot << CHROOT
 chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /opt/photobox
 usermod -aG lpadmin ${FIRST_USER_NAME}
-systemctl enable photobox-boot.service photobox.service photobox-cups.service
+systemctl enable photobox-boot.service photobox.service photobox-cups.service photobox-wifi-auto.service
+systemctl disable hostapd.service || true
+systemctl mask hostapd.service || true
 systemctl enable caddy.service cups.service avahi-daemon.service NetworkManager.service
 CHROOT

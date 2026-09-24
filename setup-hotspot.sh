@@ -34,10 +34,6 @@ if [ ${#PASS} -lt 8 ]; then
   exit 1
 fi
 
-echo "==> Pakete für den Hotspot installieren"
-# dnsmasq-base vergibt im Hotspot die IP-Adressen (NetworkManager "shared")
-sudo apt-get install -y dnsmasq-base iw
-
 echo "==> WLAN-Land auf DE setzen"
 if command -v raspi-config > /dev/null; then
   sudo raspi-config nonint do_wifi_country DE
@@ -45,24 +41,22 @@ fi
 sudo rfkill unblock wifi || true
 
 echo "==> Hotspot '$SSID' anlegen"
+# Der Hotspot läuft über hostapd (siehe deploy/photobox-wifi), nicht über NetworkManager
 sudo nmcli connection delete "$CON" > /dev/null 2>&1 || true
-sudo nmcli connection add type wifi ifname "$IFACE" con-name "$CON" ssid "$SSID" \
-  connection.autoconnect yes \
-  connection.autoconnect-priority -10 \
-  802-11-wireless.mode ap \
-  802-11-wireless.band bg \
-  802-11-wireless.channel 6 \
-  ipv4.method shared \
-  ipv4.addresses "$HOTSPOT_IP/24" \
-  ipv6.method disabled \
-  wifi-sec.key-mgmt wpa-psk \
-  wifi-sec.proto rsn \
-  wifi-sec.pairwise ccmp \
-  wifi-sec.group ccmp \
-  wifi-sec.pmf disable \
-  wifi-sec.psk "$PASS" > /dev/null
+sudo install -d -m 755 /etc/photobox
+SSID="$SSID" PASS="$PASS" sudo -E bash -c 'umask 077; cat > /etc/photobox/hotspot.conf << CONF
+# Photobox-Hotspot (wird von photobox-wifi verwaltet)
+SSID=$SSID
+PASSWORD=$PASS
+CHANNEL=6
+COUNTRY=DE
+# fallback = Hotspot nur, wenn beim Start kein bekanntes WLAN erreichbar ist
+# always   = beim Start immer Hotspot
+# never    = beim Start nie automatisch
+START=fallback
+CONF'
 
-echo "==> WLAN-Umschalter für die Statusseite einrichten"
+echo "==> Hotspot-Dienste und WLAN-Umschalter einrichten"
 "$DIR/setup-wifi-switch.sh"
 
 echo "==> Zertifikat um die Hotspot-Adresse $HOTSPOT_IP erweitern"
@@ -74,14 +68,13 @@ echo
 echo "Hotspot eingerichtet:"
 echo "  WLAN-Name: $SSID"
 echo "  Passwort:  $PASS"
-echo "  Photobox:  https://$HOTSPOT_IP"
+echo "  Photobox:  https://photobox.local  (oder https://$HOTSPOT_IP)"
 echo
-if [ -n "$WIFI_CON" ] && [ "$WIFI_CON" != "$CON" ]; then
+if [ -n "$WIFI_CON" ]; then
   echo "Der Pi ist gerade per WLAN mit '$WIFI_CON' verbunden. Der Hotspot startet"
-  echo "automatisch, wenn dieses WLAN nicht in Reichweite ist (z. B. auf der Party)."
-  echo "Sofort einschalten: ./hotspot.sh on   (die SSH-Verbindung über WLAN bricht dann ab!)"
+  echo "automatisch, wenn beim Einschalten kein bekanntes WLAN erreichbar ist."
+  echo "Umschalten: auf der Statusseite oder mit ./hotspot.sh on"
 else
   echo "==> Hotspot wird gestartet"
-  sudo nmcli connection up "$CON" > /dev/null
-  echo "Hotspot läuft."
+  sudo /usr/local/sbin/photobox-wifi hotspot
 fi

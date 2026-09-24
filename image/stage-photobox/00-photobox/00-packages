@@ -10,3 +10,4 @@ openssl
 rfkill
 iw
 dnsmasq-base
+hostapd

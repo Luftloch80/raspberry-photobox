@@ -12,7 +12,10 @@ from pathlib import Path
 
 ENV = {**os.environ, "LANG": "C", "LC_ALL": "C"}
 WIFI_IFACE = os.environ.get("PHOTOBOX_WIFI_IFACE", "wlan0")
-LEASES = Path(f"/var/lib/NetworkManager/dnsmasq-{WIFI_IFACE}.leases")
+LEASES = [
+    Path(os.environ.get("PHOTOBOX_DHCP_LEASES", "/run/photobox-dhcp/leases")),  # hostapd-Hotspot
+    Path(f"/var/lib/NetworkManager/dnsmasq-{WIFI_IFACE}.leases"),               # früherer NM-Hotspot
+]
 
 PRINTER_REASONS = {
     "media-empty": "Papier leer",
@@ -67,13 +70,14 @@ def ipv4_addresses():
 
 def hotspot_clients():
     names = {}
-    try:
-        for line in LEASES.read_text().splitlines():
-            p = line.split()
-            if len(p) >= 4:
-                names[p[1].lower()] = {"ip": p[2], "name": "" if p[3] == "*" else p[3]}
-    except OSError:
-        pass
+    for leases in LEASES:
+        try:
+            for line in leases.read_text().splitlines():
+                p = line.split()
+                if len(p) >= 4:
+                    names[p[1].lower()] = {"ip": p[2], "name": "" if p[3] == "*" else p[3]}
+        except OSError:
+            pass
 
     out = run(["iw", "dev", WIFI_IFACE, "station", "dump"])
     if out is None:
@@ -116,8 +120,8 @@ def wifi_status():
                 wifi_con = con
 
     info["known"] = known_networks()
-    info["hotspot_ssid"] = hotspot_ssid()
-    creds = hotspot_credentials() if info["hotspot_ssid"] is not None else None
+    creds = hotspot_credentials()
+    info["hotspot_ssid"] = creds["ssid"] if creds else None
     info["hotspot_password"] = creds["password"] if creds else None
     try:
         # Neueste Meldung zuerst (siehe deploy/photobox-wifi)
@@ -125,6 +129,16 @@ def wifi_status():
     except OSError:
         info["switch_log"] = []
     info["switch_available"] = wifi_switch_available()
+
+    if hostapd_active():
+        info.update(mode="hotspot", connection="hotspot", ssid=info["hotspot_ssid"] or "")
+        m = re.search(r"channel (\d+)", run(["iw", "dev", WIFI_IFACE, "info"]) or "")
+        info["channel"] = m.group(1) if m else ""
+        clients = hotspot_clients()
+        info["clients"] = clients or []
+        if clients is None:
+            info["message"] = "Geräteliste nicht verfügbar (iw fehlt)"
+        return info
 
     if not wifi_con:
         info["message"] = "WLAN nicht verbunden"
@@ -179,10 +193,15 @@ def wifi_switch_available():
     return run(["sudo", "-n", "-l", WIFI_HELPER]) is not None
 
 
+def hostapd_active():
+    """Läuft der Photobox-Hotspot (hostapd, siehe deploy/photobox-wifi)?"""
+    return run(["systemctl", "is-active", "--quiet", "photobox-hostapd"]) is not None
+
+
 def hotspot_ssid():
     """WLAN-Name des Photobox-Hotspots, oder None wenn keiner eingerichtet ist."""
-    out = run(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", HOTSPOT_CON])
-    return out.strip().replace("\\:", ":") if out is not None else None
+    creds = hotspot_credentials()
+    return creds["ssid"] if creds else None
 
 
 def hotspot_credentials():

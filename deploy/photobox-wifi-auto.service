@@ -1,0 +1,11 @@
+[Unit]
+Description=Photobox: beim Start Hotspot einschalten, wenn kein WLAN erreichbar ist
+After=NetworkManager.service photobox-boot.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/photobox-wifi auto
+
+[Install]
+WantedBy=multi-user.target

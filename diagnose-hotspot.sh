@@ -18,8 +18,8 @@ LOG="$HOME_DIR/hotspot-test.log"
 CON=Photobox-Hotspot
 WAIT=180
 
-SSID="$(nmcli -g 802-11-wireless.ssid connection show "$CON" 2> /dev/null)"
-PSK="$(nmcli -s -g 802-11-wireless-security.psk connection show "$CON" 2> /dev/null)"
+SSID="$(/usr/local/sbin/photobox-wifi credentials 2> /dev/null | sed -n 1p)"
+PSK="$(/usr/local/sbin/photobox-wifi credentials 2> /dev/null | sed -n 2p)"
 if [ -z "$SSID" ]; then
   echo "Kein Hotspot eingerichtet – zuerst ./setup-hotspot.sh ausführen." >&2
   exit 1
@@ -43,7 +43,7 @@ systemd-run --quiet --collect --unit="photobox-hotspot-test-$$" bash -c "
     journalctl -k -b --no-pager | grep -iE 'brcmfmac.*(firmware|version)' | tail -3
     iw reg get 2>/dev/null | head -3
     echo '--- Hotspot-Einstellungen'
-    nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel,802-11-wireless-security connection show '$CON'
+    grep -v PASSWORD /etc/photobox/hotspot.conf
   } > '$LOG' 2>&1
   START=\$(date '+%Y-%m-%d %H:%M:%S')
   /usr/local/sbin/photobox-wifi hotspot >> '$LOG' 2>&1
@@ -59,8 +59,10 @@ systemd-run --quiet --collect --unit="photobox-hotspot-test-$$" bash -c "
     iw dev wlan0 station dump | grep -E 'Station|signal:|authorized|authenticated'
     echo '--- WLAN-Ereignisse'
     tail -60 /tmp/photobox-iw-events.txt
-    echo '--- wpa_supplicant'
-    journalctl --since \"\$START\" -u wpa_supplicant --no-pager | tail -40
+    echo '--- hostapd'
+    journalctl --since \"\$START\" -u photobox-hostapd --no-pager | tail -40
+    echo '--- dhcp'
+    journalctl --since \"\$START\" -u photobox-dhcp --no-pager | tail -15
     echo '--- NetworkManager'
     journalctl --since \"\$START\" -u NetworkManager --no-pager | grep -viE 'dhcp4|dns|audit' | tail -40
     echo '--- Kernel'

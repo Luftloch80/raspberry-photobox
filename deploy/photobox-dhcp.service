@@ -1,0 +1,16 @@
+[Unit]
+Description=Photobox-Hotspot: IP-Adressen für verbundene Geräte (dnsmasq)
+# Wird von /usr/local/sbin/photobox-wifi gestartet und gestoppt
+After=photobox-hostapd.service
+BindsTo=photobox-hostapd.service
+
+[Service]
+Type=simple
+RuntimeDirectory=photobox-dhcp
+ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --conf-file=/dev/null --no-hosts --pid-file= \
+  --interface=wlan0 --bind-interfaces --except-interface=lo --port=0 \
+  --dhcp-authoritative --dhcp-range=10.42.0.10,10.42.0.200,255.255.255.0,12h \
+  --dhcp-option=option:router,10.42.0.1 \
+  --dhcp-leasefile=/run/photobox-dhcp/leases
+Restart=on-failure
+RestartSec=2

@@ -2,23 +2,18 @@
 # Photobox-Hotspot ein-/ausschalten:  ./hotspot.sh on | off | status
 set -euo pipefail
 
-CON=Photobox-Hotspot
-
 case "${1:-status}" in
   on)
     echo "Hotspot wird eingeschaltet. Eine SSH-Verbindung über WLAN bricht jetzt ab."
-    sudo nmcli connection up "$CON"
+    sudo /usr/local/sbin/photobox-wifi hotspot
     ;;
   off)
-    sudo nmcli connection down "$CON" || true
-    echo "Hotspot aus. Verbinde mit bekanntem WLAN …"
-    sudo nmcli device wifi rescan > /dev/null 2>&1 || true
-    sleep 3
-    sudo nmcli device connect wlan0 || true
+    echo "Hotspot aus, verbinde mit bekanntem WLAN …"
+    sudo /usr/local/sbin/photobox-wifi client
     ;;
   status)
-    if nmcli -t -f NAME connection show --active | grep -qx "$CON"; then
-      echo "Hotspot ist AN:  WLAN '$(nmcli -g 802-11-wireless.ssid connection show "$CON")'  →  https://10.42.0.1"
+    if [ "$(/usr/local/sbin/photobox-wifi status)" = "hotspot" ]; then
+      echo "Hotspot ist AN:  WLAN '$(sudo /usr/local/sbin/photobox-wifi credentials | head -1)'  →  https://photobox.local"
     else
       echo "Hotspot ist AUS."
     fi
