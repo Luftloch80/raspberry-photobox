@@ -50,7 +50,7 @@ SSH: `ssh photobox@10.42.0.1` (Passwort `photobox`, bitte mit `passwd` ändern).
 LAN-Kabel ist der Pi zusätzlich im Heimnetz erreichbar (`photobox.local`).
 
 Das Image wird von GitHub Actions gebaut (`.github/workflows/build-image.yml`, Stage in
-`image/`). Ein neuer Build startet bei Änderungen in `image/`, bei einem Tag `v*` oder
+`image/`). Ein neuer Build startet bei Änderungen in `image/` oder
 manuell unter *Actions → Raspberry-Pi-Image bauen → Run workflow*. Wer ein anderes
 Standard-Passwort möchte, legt das Repository-Secret `PI_PASSWORD` an.
 

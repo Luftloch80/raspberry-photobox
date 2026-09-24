@@ -3,7 +3,7 @@ name: Raspberry-Pi-Image bauen
 on:
   workflow_dispatch:
   push:
-    tags: ["v*"]
+    branches: ["**"]
     paths:
       - "image/**"
       - ".github/workflows/build-image.yml"
