@@ -6,7 +6,10 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 USER_NAME="${SUDO_USER:-$USER}"
 
 echo "==> Pakete installieren (CUPS, Python)"
-sudo apt-get update
+if ! sudo apt-get update; then
+  echo "!!  'apt-get update' meldet Fehler (meist eine kaputte Paketquelle in /etc/apt/sources.list.d/)."
+  echo "    Installation wird trotzdem fortgesetzt …"
+fi
 sudo apt-get install -y python3-venv python3-pip cups printer-driver-gutenprint libjpeg-dev zlib1g-dev
 sudo usermod -aG lpadmin "$USER_NAME"
 
