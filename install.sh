@@ -12,6 +12,9 @@ if ! sudo apt-get update; then
 fi
 sudo apt-get install -y python3-venv python3-pip cups printer-driver-gutenprint libjpeg-dev zlib1g-dev
 sudo usermod -aG lpadmin "$USER_NAME"
+# CUPS-Weboberfläche auch im Heimnetz erreichbar machen (http://<pi-adresse>:631)
+sudo cupsctl --remote-admin --remote-any --share-printers
+sudo systemctl restart cups
 
 echo "==> Python-Umgebung einrichten"
 python3 -m venv "$DIR/.venv"
@@ -36,7 +39,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now photobox
 
 echo
-echo "Fertig! Die Photobox läuft lokal auf http://127.0.0.1:8080"
+IP="$(hostname -I | awk '{print $1}')"
+echo "Fertig! Die Photobox läuft auf http://$IP:8080"
 echo "Nächste Schritte (siehe README.md):"
-echo "  1. Drucker in CUPS einrichten:  http://<pi-adresse>:631  (oder: sudo lpadmin ...)"
+echo "  1. Drucker in CUPS einrichten:  http://$IP:631"
 echo "  2. Cloudflare Tunnel einrichten, damit die Photobox per HTTPS aus dem Internet erreichbar ist"

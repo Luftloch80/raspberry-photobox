@@ -43,9 +43,9 @@ Nach Änderungen: `sudo systemctl restart photobox`.
 ## 2. Drucker einrichten (CUPS)
 
 1. Drucker per USB oder WLAN anschließen.
-2. CUPS-Weboberfläche vom Pi aus öffnen: <http://localhost:631> → *Verwaltung* →
-   *Drucker hinzufügen*. Für den Fernzugriff aus dem Heimnetz vorher
-   `sudo cupsctl --remote-admin` ausführen.
+2. CUPS-Weboberfläche im Browser öffnen: `http://<pi-adresse>:631` → *Verwaltung* →
+   *Drucker hinzufügen* (Anmeldung mit dem Pi-Benutzer und seinem Passwort).
+   `install.sh` gibt CUPS dafür mit `sudo cupsctl --remote-admin --remote-any` im Heimnetz frei.
 3. Drucker als **Standarddrucker** festlegen, oder seinen Namen in `.env` als
    `PHOTOBOX_PRINTER` eintragen (`lpstat -p` zeigt die Namen).
 4. Testdruck: `lp -o fit-to-page irgendein-bild.jpg`
