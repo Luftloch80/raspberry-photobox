@@ -47,7 +47,6 @@ WLAN_NAME="${WLAN_NAME//;/}"
 [[ "$WLAN_KANAL" =~ ^([1-9]|1[0-3])$ ]] || WLAN_KANAL=6
 [[ "$WLAN_LAND" =~ ^[A-Za-z]{2}$ ]] || WLAN_LAND=DE
 WLAN_LAND="${WLAN_LAND^^}"
-[ -n "$PIN" ] || PIN=2468
 
 # ---- WLAN-Land ----
 if [ "$(cat "$STATE/wifi-country" 2> /dev/null)" != "$WLAN_LAND" ]; then
