@@ -504,26 +504,27 @@ html.scrollable, html.scrollable body { height: auto; min-height: 100%; overflow
 
 .guide-btn {
   position: absolute;
-  top: 16px;
+  top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 18px;
+  padding: 18px 44px;
   border: 0;
   border-radius: 999px;
-  background: rgba(0, 0, 0, .5);
+  background: var(--accent);
   color: #fff;
-  font-size: 17px;
-  font-weight: 700;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
   cursor: pointer;
   white-space: nowrap;
+  animation: guide-pulse 2.4s ease-in-out infinite;
 }
-.guide-summary { font-weight: 600; font-size: 15px; opacity: .85; }
+.guide-btn:active { transform: translateX(-50%) scale(.96); }
+@keyframes guide-pulse {
+  0%, 100% { box-shadow: 0 8px 30px rgba(0, 0, 0, .35), 0 0 0 0 rgba(255, 77, 109, .55); }
+  50% { box-shadow: 0 8px 30px rgba(0, 0, 0, .35), 0 0 0 16px rgba(255, 77, 109, 0); }
+}
 body.shooting .guide-btn, body.shooting .settings-btn { opacity: 0; pointer-events: none; }
 
 .shot-label {

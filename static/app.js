@@ -561,9 +561,6 @@
   function renderGuide() {
     for (const b of $("guideTimer").children) b.classList.toggle("active", Number(b.dataset.v) === settings.countdown);
     for (const b of $("guideBurst").children) b.classList.toggle("active", Number(b.dataset.v) === settings.burst);
-    const timer = settings.countdown ? `⏱ ${settings.countdown} s` : "⏱ aus";
-    const burst = settings.burst > 1 ? `📷 × ${settings.burst}` : "📷 × 1";
-    $("guideSummary").textContent = `${timer} · ${burst}`;
   }
 
   function closeGuide() {

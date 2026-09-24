@@ -17,7 +17,7 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 
 - Live-Kamerabild der Frontkamera im Vollbild (optional gespiegelt)
 - Großer Auslöser mit Blitz-Effekt
-- Knopf **„So geht's“** oben in der Mitte für Gäste: kurze Anleitung, Timer (aus / 3 / 5 / 10 s)
+- Großer Knopf **„Drück Mich!“** oben in der Mitte für Gäste: kurze Anleitung, Timer (aus / 3 / 5 / 10 s)
   und **Serien von 1–4 Fotos** hintereinander (Countdown vor jedem Foto)
 - Serien werden zusammen angezeigt: einzeln oder **alle drucken**
 - Beginnt eine neue Serie, werden die Fotos der vorherigen Gäste **endgültig gelöscht**
@@ -160,7 +160,7 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
      dreimal die Seitentaste drücken. Dann können Gäste die App nicht verlassen.
    - *Einstellungen → Anzeige & Helligkeit → Automatische Sperre: Nie*
 6. Über das ⚙️-Symbol oben links (für dich): Spiegeln, Auto-Druck, Fernauslöser-Test, Statusseite.
-   Timer und Serien stellen Gäste über „So geht's“ oben in der Mitte ein.
+   Timer und Serien stellen Gäste über „Drück Mich!“ oben in der Mitte ein.
 
 ## Lokale Entwicklung
 
