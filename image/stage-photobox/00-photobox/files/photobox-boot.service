@@ -1,0 +1,12 @@
+[Unit]
+Description=Photobox: Hotspot, Zertifikate und Einstellungen vorbereiten
+After=local-fs.target
+Before=NetworkManager.service caddy.service photobox.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/photobox-boot
+
+[Install]
+WantedBy=multi-user.target

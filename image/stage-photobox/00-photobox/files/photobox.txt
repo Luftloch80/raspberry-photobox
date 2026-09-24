@@ -1,0 +1,25 @@
+# ============================================================
+#  Photobox – Einstellungen
+#  Diese Datei liegt auf der SD-Karte (Laufwerk "bootfs") und
+#  kann am PC mit einem Texteditor geändert werden.
+#  Änderungen gelten nach dem nächsten Neustart des Pi.
+# ============================================================
+
+# Name des WLANs, das die Photobox aufspannt
+WLAN_NAME=Photobox
+
+# WLAN-Passwort (mindestens 8 Zeichen)
+WLAN_PASSWORT=photobox123
+
+# PIN für die Anmeldung auf dem iPad
+PIN=2468
+
+# WLAN-Kanal (1-13) und Land
+WLAN_KANAL=6
+WLAN_LAND=DE
+
+# CUPS-Druckername (leer = Standarddrucker)
+DRUCKER=
+
+# Druckoptionen, z. B. für Canon Selphy 10x15:  fit-to-page media=Postcard
+DRUCK_OPTIONEN=fit-to-page

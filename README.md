@@ -27,7 +27,34 @@ Router freigegeben werden.
 - Als App zum Home-Bildschirm hinzufügbar (Vollbild, ohne Safari-Leisten)
 - Bildschirm bleibt an (Wake Lock), Hinweis bei Hochformat
 
-## 1. Installation auf dem Raspberry Pi
+## Schnellstart: Fertiges SD-Karten-Image
+
+Unter **Releases** gibt es ein fertiges Image (`photobox-….img.xz`). Es startet nach dem
+Booten automatisch den WLAN-Hotspot, die Photobox, CUPS und HTTPS.
+
+1. Mit dem [Raspberry Pi Imager](https://www.raspberrypi.com/software/) auf eine SD-Karte
+   schreiben: *Eigenes Image verwenden*, bei der Frage nach Anpassungen **Nein** wählen.
+2. Optional am PC auf der SD-Karte (Laufwerk `bootfs`) die Datei **`photobox.txt`**
+   anpassen: WLAN-Name, WLAN-Passwort, PIN, WLAN-Kanal, Drucker und Druckoptionen.
+   Änderungen gelten auch später nach jedem Neustart.
+3. Pi starten und 1–2 Minuten warten, bis das WLAN **Photobox** erscheint
+   (Standard-Passwort `photobox123`).
+4. iPad mit dem WLAN verbinden, dann in Safari:
+   - `http://10.42.0.1:8080/ca.crt` → *Zulassen* → *Einstellungen → Profil geladen → Installieren*
+   - *Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen* → **Photobox Local CA** einschalten
+   - **https://10.42.0.1** öffnen, PIN `2468`
+5. Drucker per USB anschließen und unter `https://10.42.0.1:631` einrichten
+   (Anmeldung: Benutzer `photobox`, Passwort `photobox`).
+
+SSH: `ssh photobox@10.42.0.1` (Passwort `photobox`, bitte mit `passwd` ändern). Über ein
+LAN-Kabel ist der Pi zusätzlich im Heimnetz erreichbar (`photobox.local`).
+
+Das Image wird von GitHub Actions gebaut (`.github/workflows/build-image.yml`, Stage in
+`image/`). Ein neuer Build startet bei Änderungen in `image/`, bei einem Tag `v*` oder
+manuell unter *Actions → Raspberry-Pi-Image bauen → Run workflow*. Wer ein anderes
+Standard-Passwort möchte, legt das Repository-Secret `PI_PASSWORD` an.
+
+## 1. Installation auf einem vorhandenen Raspberry Pi
 
 ```bash
 git clone https://github.com/luftloch80/raspberry-photobox.git

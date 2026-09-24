@@ -4,3 +4,4 @@ __pycache__/
 .env
 photos/
 ca.crt
+image/stage-photobox/00-photobox/files/photobox/

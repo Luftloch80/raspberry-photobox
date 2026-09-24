@@ -1,0 +1,13 @@
+[Unit]
+Description=Photobox: CUPS-Weboberfläche im Netzwerk freigeben (einmalig)
+After=cups.service
+Requires=cups.service
+ConditionPathExists=!/etc/photobox/cups-configured
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/cupsctl --remote-admin --remote-any --share-printers
+ExecStartPost=/usr/bin/touch /etc/photobox/cups-configured
+
+[Install]
+WantedBy=multi-user.target

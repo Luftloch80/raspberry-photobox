@@ -1,0 +1,10 @@
+python3-flask
+python3-pil
+python3-waitress
+cups
+cups-bsd
+printer-driver-gutenprint
+caddy
+avahi-daemon
+openssl
+rfkill
