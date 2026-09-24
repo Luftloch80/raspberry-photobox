@@ -38,7 +38,9 @@ systemd-run --quiet --collect --unit="photobox-hotspot-test-$$" bash -c "
     echo '=== Hotspot-Test' \$(date)
     echo '--- Kernel / Treiber'
     uname -r
-    echo -n 'brcmfmac feature_disable: '; cat /sys/module/brcmfmac/parameters/feature_disable 2>/dev/null || echo '(nicht gesetzt)'
+    echo 'brcmfmac-Optionen:'; modprobe -c 2>/dev/null | grep -i 'options brcmfmac' || echo '  (keine)'
+    ls /boot/firmware/initramfs* 2>/dev/null | sed 's/^/initramfs: /'
+    journalctl -k -b --no-pager | grep -iE 'brcmfmac.*(firmware|version)' | tail -3
     iw reg get 2>/dev/null | head -3
     echo '--- Hotspot-Einstellungen'
     nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel,802-11-wireless-security connection show '$CON'
@@ -49,13 +51,20 @@ systemd-run --quiet --collect --unit="photobox-hotspot-test-$$" bash -c "
     echo '--- Nach dem Start'
     iw dev wlan0 info
   } >> '$LOG' 2>&1
+  # WLAN-Ereignisse (Anmelden/Abmelden von Geräten) mitschreiben
+  timeout $WAIT iw event -t -f > /tmp/photobox-iw-events.txt 2>&1 &
   sleep $WAIT
   {
     echo '--- Verbundene Geräte'
     iw dev wlan0 station dump | grep -E 'Station|signal:|authorized|authenticated'
-    echo '--- Protokoll NetworkManager / wpa_supplicant / Kernel'
-    journalctl --since \"\$START\" -u NetworkManager -u wpa_supplicant -k --no-pager \
-      | grep -iE 'wlan0|brcmf|handshake|4-way|eapol|psk|auth|deauth|disassoc|AP-STA|supplicant|dnsmasq' | tail -80
+    echo '--- WLAN-Ereignisse'
+    tail -60 /tmp/photobox-iw-events.txt
+    echo '--- wpa_supplicant'
+    journalctl --since \"\$START\" -u wpa_supplicant --no-pager | tail -40
+    echo '--- NetworkManager'
+    journalctl --since \"\$START\" -u NetworkManager --no-pager | grep -viE 'dhcp4|dns|audit' | tail -40
+    echo '--- Kernel'
+    journalctl --since \"\$START\" -k --no-pager | grep -iE 'brcmf|wlan0|ieee80211' | tail -30
   } >> '$LOG' 2>&1
   /usr/local/sbin/photobox-wifi client >> '$LOG' 2>&1
   chown ${SUDO_USER:-root} '$LOG'

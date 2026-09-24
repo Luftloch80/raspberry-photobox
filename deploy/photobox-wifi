@@ -101,17 +101,32 @@ case "${1:-}" in
       grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" || ordered+=("$name")
     done
 
-    for name in "${ordered[@]}"; do
-      if grep -Fxq -- "${ssid_of[$name]}" <<< "$visible"; then
-        log "Verbinde mit '$name'"
-      else
-        log "Verbinde mit '$name' (bei der Suche nicht gefunden, versuche trotzdem)"
-      fi
-      if nm --wait 45 connection up "$name" ifname "$IFACE"; then
-        log "Verbunden mit '$name'"
-        exit 0
-      fi
-    done
+    try_known() {
+      local name
+      for name in "${ordered[@]}"; do
+        if grep -Fxq -- "${ssid_of[$name]}" <<< "$visible"; then
+          log "Verbinde mit '$name'"
+        else
+          log "Verbinde mit '$name' (bei der Suche nicht gefunden, versuche trotzdem)"
+        fi
+        if nm --wait 45 connection up "$name" ifname "$IFACE"; then
+          log "Verbunden mit '$name'"
+          exit 0
+        fi
+      done
+    }
+    try_known
+
+    # Nach dem Hotspot-Betrieb hängt der WLAN-Chip manchmal: WLAN aus/an und nochmal
+    log "WLAN wird zurückgesetzt und neu versucht"
+    nmcli radio wifi off > /dev/null 2>&1 || true
+    sleep 3
+    nmcli radio wifi on > /dev/null 2>&1 || true
+    sleep 8
+    nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
+    sleep 4
+    visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
+    try_known
 
     log "Kein bekanntes WLAN erreichbar – schalte zurück auf Hotspot"
     hotspot_up
