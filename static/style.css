@@ -37,9 +37,14 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
 /* ---------- Layout ---------- */
 
 .app {
+  /* fest an den Bildschirmrändern: entspricht in jedem Safari genau dem sichtbaren Bereich
+     (100vh ist in Safari oft höher als der sichtbare Teil) */
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
-  height: 100vh;
-  height: 100dvh;
   padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
 }
 
@@ -145,6 +150,7 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
 /* ---------- Galerie ---------- */
 
 .gallery {
+  min-height: 0;
   width: var(--gallery-w);
   display: flex;
   flex-direction: column;
