@@ -67,28 +67,51 @@ case "${1:-}" in
     log "Schalte auf normales WLAN"
     nmcli connection down "$CON" > /dev/null 2>&1 || true
     rfkill unblock wifi 2> /dev/null || true
-    nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
-    sleep 4
-    visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
 
     # Bekannte WLAN-Verbindungen (ohne Hotspot), höchste Priorität zuerst
-    while IFS=: read -r prio name; do
-      [ -n "$name" ] || continue
-      ssid="$(nmcli -g 802-11-wireless.ssid connection show "$name" 2> /dev/null)"
-      mode="$(nmcli -g 802-11-wireless.mode connection show "$name" 2> /dev/null)"
-      [ "$mode" = "ap" ] && continue
-      if [ -n "$ssid" ] && ! grep -Fxq -- "$ssid" <<< "$visible"; then
-        log "WLAN '$ssid' nicht in Reichweite"
-        continue
+    mapfile -t known < <(nmcli -t -f AUTOCONNECT-PRIORITY,NAME,TYPE connection show \
+               | awk -F: -v hs="$CON" '$3=="802-11-wireless" && $2!=hs {print $1":"$2}' \
+               | sort -t: -k1,1nr | cut -d: -f2-)
+    declare -A ssid_of=()
+    targets=()
+    for name in "${known[@]}"; do
+      [ "$(nmcli -g 802-11-wireless.mode connection show "$name" 2> /dev/null)" = "ap" ] && continue
+      ssid_of[$name]="$(nmcli -g 802-11-wireless.ssid connection show "$name" 2> /dev/null)"
+      targets+=("$name")
+    done
+
+    # Nach dem Hotspot-Betrieb braucht die WLAN-Suche etwas: bis zu 20 s warten,
+    # bis eines der bekannten WLANs auftaucht
+    visible=""
+    for _ in 1 2 3 4 5; do
+      nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
+      sleep 4
+      visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
+      for name in "${targets[@]}"; do
+        grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" && break 2
+      done
+    done
+
+    # Erst die sichtbaren WLANs versuchen, dann die übrigen (NetworkManager sucht selbst nochmal)
+    ordered=()
+    for name in "${targets[@]}"; do
+      grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" && ordered+=("$name")
+    done
+    for name in "${targets[@]}"; do
+      grep -Fxq -- "${ssid_of[$name]}" <<< "$visible" || ordered+=("$name")
+    done
+
+    for name in "${ordered[@]}"; do
+      if grep -Fxq -- "${ssid_of[$name]}" <<< "$visible"; then
+        log "Verbinde mit '$name'"
+      else
+        log "Verbinde mit '$name' (bei der Suche nicht gefunden, versuche trotzdem)"
       fi
-      log "Verbinde mit '$name'"
-      if nm --wait 30 connection up "$name" ifname "$IFACE"; then
+      if nm --wait 45 connection up "$name" ifname "$IFACE"; then
         log "Verbunden mit '$name'"
         exit 0
       fi
-    done < <(nmcli -t -f AUTOCONNECT-PRIORITY,NAME,TYPE connection show \
-               | awk -F: -v hs="$CON" '$3=="802-11-wireless" && $2!=hs {print $1":"$2}' \
-               | sort -t: -k1,1nr)
+    done
 
     log "Kein bekanntes WLAN erreichbar – schalte zurück auf Hotspot"
     hotspot_up
