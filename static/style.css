@@ -134,10 +134,13 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   display: grid;
   place-items: center;
   font-size: 26px;
+  padding: 0;
+  color: #fff;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
-.settings-btn { top: 16px; left: 16px; opacity: .6; }
+.settings-btn { top: 16px; left: 16px; opacity: .7; }
+.icon-btn svg { width: 28px; height: 28px; }
 
 /* ---------- Galerie ---------- */
 
