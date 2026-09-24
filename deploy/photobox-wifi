@@ -97,7 +97,39 @@ hotspot_active() {
 stop_hotspot() {
   systemctl stop photobox-dhcp photobox-hostapd 2> /dev/null || true
   ip addr flush dev "$IFACE" 2> /dev/null || true
+  nm_take_over
+}
+
+# WLAN wieder an NetworkManager geben und warten, bis er es übernommen hat
+nm_take_over() {
+  local i state
   nmcli device set "$IFACE" managed yes > /dev/null 2>&1 || true
+  for i in $(seq 1 20); do
+    state="$(nmcli -t -f DEVICE,STATE device | awk -F: -v i="$IFACE" '$1==i {print $2}')"
+    case "$state" in
+      disconnected|connected*|connecting*) return 0 ;;
+    esac
+    sleep 1
+  done
+  log "NetworkManager übernimmt das WLAN nicht (Zustand: ${state:-unbekannt})"
+  return 1
+}
+
+# WLAN-Treiber neu laden (inkl. Hersteller-Modul brcmfmac_cyw/_wcc/_bca)
+reload_wifi_driver() {
+  local mods
+  mods="$(lsmod | awk '$1 ~ /^brcmfmac_/ {print $1}')"
+  # shellcheck disable=SC2086
+  modprobe -r $mods brcmfmac 2> /dev/null || log "Treiber ließ sich nicht entladen: $(lsmod | awk '$1 ~ /^brcmf/ {print $1}' | tr '\n' ' ')"
+  sleep 2
+  modprobe brcmfmac 2> /dev/null || log "Treiber ließ sich nicht laden"
+  # warten, bis wlan0 wieder da ist
+  local i
+  for i in $(seq 1 20); do
+    ip link show "$IFACE" > /dev/null 2>&1 && break
+    sleep 1
+  done
+  sleep 3
 }
 
 write_hostapd_conf() {
@@ -227,15 +259,12 @@ switch_to_client() {
   nmcli radio wifi off > /dev/null 2>&1 || true
   sleep 3
   nmcli radio wifi on > /dev/null 2>&1 || true
-  sleep 8
+  nm_take_over
   connect_client && return 0
 
   log "WLAN-Treiber wird neu geladen"
-  modprobe -r brcmfmac_wcc brcmfmac 2> /dev/null || modprobe -r brcmfmac 2> /dev/null || true
-  sleep 2
-  modprobe brcmfmac 2> /dev/null || true
-  sleep 12
-  nmcli device set "$IFACE" managed yes > /dev/null 2>&1 || true
+  reload_wifi_driver
+  nm_take_over
   connect_client && return 0
   return 1
 }
