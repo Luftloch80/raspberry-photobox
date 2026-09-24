@@ -45,7 +45,7 @@ Booten automatisch den WLAN-Hotspot, die Photobox, CUPS und HTTPS.
    - `http://10.42.0.1:8080/ca.crt` → *Zulassen* → *Einstellungen → Profil geladen → Installieren*
    - *Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen* → **Photobox Local CA** einschalten
    - **https://10.42.0.1** öffnen
-5. Drucker per USB anschließen und unter `https://10.42.0.1:631` einrichten
+5. Drucker per USB anschließen und unter `https://10.42.0.1:8631` einrichten
    (Anmeldung: Benutzer `photobox`, Passwort `photobox`).
 
 SSH: `ssh photobox@10.42.0.1` (Passwort `photobox`, bitte mit `passwd` ändern). Über ein
@@ -72,9 +72,11 @@ Nach Änderungen: `sudo systemctl restart photobox`.
 ## 2. Drucker einrichten (CUPS)
 
 1. Drucker per USB oder WLAN anschließen.
-2. CUPS-Weboberfläche im Browser öffnen: `http://<pi-adresse>:631` → *Verwaltung* →
+2. CUPS-Weboberfläche im Browser öffnen: `https://<pi-adresse>:8631` → *Verwaltung* →
    *Drucker hinzufügen* (Anmeldung mit dem Pi-Benutzer und seinem Passwort).
-   `install.sh` gibt CUPS dafür mit `sudo cupsctl --remote-admin --remote-any` im Heimnetz frei.
+   Caddy stellt CUPS auf Port **8631** mit dem Photobox-Zertifikat bereit. Nicht direkt
+   Port `631` verwenden: Dort leitet CUPS auf sein eigenes Zertifikat um, und die Seite
+   lädt im Browser ständig neu.
 3. Drucker als **Standarddrucker** festlegen, oder seinen Namen in `.env` als
    `PHOTOBOX_PRINTER` eintragen (`lpstat -p` zeigt die Namen).
 4. Testdruck: `lp -o fit-to-page irgendein-bild.jpg`
@@ -132,6 +134,8 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 2. Kamerazugriff erlauben (dauerhaft: `aA` in der Adressleiste → *Website-Einstellungen* → *Kamera: Erlauben*).
 3. *Teilen* → **Zum Home-Bildschirm**. Danach die Photobox über das neue Icon starten,
    dann läuft sie im Vollbild ohne Safari-Leisten.
+   Als Home-Bildschirm-App startet iPadOS die Kamera manchmal erst nach einem Fingertipp:
+   Dann erscheint nach wenigen Sekunden der Knopf **„Kamera starten“**.
 4. iPad ins **Querformat** drehen. Im Hochformat erscheint ein Hinweis.
 5. Für den Party-Betrieb empfohlen:
    - *Einstellungen → Bedienungshilfen → Geführter Zugriff* aktivieren und in der Photobox

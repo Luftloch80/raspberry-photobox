@@ -4,6 +4,17 @@
 	reverse_proxy localhost:8080
 }
 
+# CUPS-Weboberfläche mit demselben Zertifikat (https://<pi>:8631).
+# CUPS sieht die Anfragen als lokal an und leitet nicht auf sein eigenes,
+# nicht vertrauenswürdiges HTTPS um (sonst lädt die Seite dauernd neu).
+:8631 {
+	tls /etc/caddy/photobox.crt /etc/caddy/photobox.key
+	reverse_proxy localhost:631 {
+		header_up Host localhost:631
+		header_down Location "^https?://localhost:631(.*)$" "https://{http.request.hostport}$1"
+	}
+}
+
 :80 {
 	redir https://{host}{uri}
 }

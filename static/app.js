@@ -61,13 +61,40 @@
 
   let stream = null;
 
+  // Als App vom Home-Bildschirm gestartet?
+  const standalone = window.navigator.standalone === true ||
+    window.matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches;
+
+  let cameraRun = 0; // verhindert, dass ein älterer Startversuch einen neueren überschreibt
+
+  function requestStream() {
+    const tries = [
+      { audio: false, video: { facingMode: settings.camera, width: { ideal: 1920 }, height: { ideal: 1440 } } },
+      { audio: false, video: { facingMode: settings.camera } },
+      { audio: false, video: true },
+    ];
+    // Nacheinander probieren; abgelehnte Berechtigung sofort weitergeben
+    return tries.reduce((p, c) => p.catch((err) => {
+      if (err && (err.name === "NotAllowedError" || err.name === "SecurityError")) throw err;
+      return navigator.mediaDevices.getUserMedia(c);
+    }), Promise.reject(new Error("start")));
+  }
+
+  function showCameraButton(text, label, action) {
+    $("cameraHintText").textContent = text;
+    const retry = $("cameraRetry");
+    retry.textContent = label;
+    retry.onclick = action;
+    retry.hidden = false;
+  }
+
   async function startCamera() {
+    const run = ++cameraRun;
     const hint = $("cameraHint");
     const hintText = $("cameraHintText");
-    const retry = $("cameraRetry");
     shutter.disabled = true;
     hint.hidden = false;
-    retry.hidden = true;
+    $("cameraRetry").hidden = true;
     hintText.textContent = "Kamera wird gestartet …";
 
     if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -77,36 +104,40 @@
 
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = null;
-    try {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: settings.camera,
-            width: { ideal: 1920 },
-            height: { ideal: 1440 },
-          },
-        });
-      } catch (err) {
-        if (err && (err.name === "NotAllowedError" || err.name === "SecurityError")) throw err;
-        // Manche Geräte mögen die Auflösungswünsche nicht – ohne Vorgaben erneut versuchen
-        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: settings.camera } })
-          .catch(() => navigator.mediaDevices.getUserMedia({ audio: false, video: true }));
+
+    // iPadOS-Web-Apps vom Home-Bildschirm beantworten die Kamera-Anfrage beim
+    // Start manchmal nie. Dann nach kurzer Zeit einen Knopf anbieten – ein
+    // Tippen darauf startet die Anfrage neu.
+    const timer = setTimeout(() => {
+      if (run === cameraRun && !stream) {
+        showCameraButton("Die Kamera braucht einen Fingertipp zum Starten.", "📷 Kamera starten", startCamera);
       }
+    }, 3000);
+
+    try {
+      const s = await requestStream();
+      clearTimeout(timer);
+      if (run !== cameraRun) {
+        s.getTracks().forEach((t) => t.stop()); // ein neuerer Versuch ist schon unterwegs
+        return;
+      }
+      stream = s;
       video.srcObject = stream;
       video.classList.toggle("mirror", settings.mirror);
       await playVideo();
     } catch (err) {
+      clearTimeout(timer);
+      if (run !== cameraRun) return;
       console.error(err);
       const name = err && err.name;
-      hintText.textContent = name === "NotAllowedError"
-        ? "Kamerazugriff wurde verweigert. Bitte erlauben: aA in der Adressleiste → Website-Einstellungen → Kamera → Erlauben. Danach neu laden."
-        : name === "NotReadableError"
-          ? "Die Kamera wird gerade von einer anderen App benutzt. Bitte andere Apps schließen."
-          : "Kamera konnte nicht gestartet werden: " + ((err && (name ? name + " – " : "") + err.message) || err);
-      retry.textContent = "Erneut versuchen";
-      retry.onclick = startCamera;
-      retry.hidden = false;
+      const denied = standalone
+        ? "Kamerazugriff wurde verweigert. Die Photobox-App schließen (vom unteren Rand hochwischen) und neu öffnen, dann bei der Frage „Erlauben“ tippen."
+        : "Kamerazugriff wurde verweigert. Bitte erlauben: aA in der Adressleiste → Website-Einstellungen → Kamera → Erlauben. Danach neu laden.";
+      showCameraButton(
+        name === "NotAllowedError" ? denied
+          : name === "NotReadableError" ? "Die Kamera wird gerade von einer anderen App benutzt. Bitte andere Apps schließen."
+          : "Kamera konnte nicht gestartet werden: " + ((err && (name ? name + " – " : "") + err.message) || err),
+        "Erneut versuchen", startCamera);
     }
   }
 

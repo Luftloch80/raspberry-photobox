@@ -276,7 +276,7 @@
     }
 
     const cups = el("a", "btn small", "Drucker verwalten (CUPS)");
-    cups.href = `https://${location.hostname}:631/printers/`;
+    cups.href = `https://${location.hostname}:8631/printers/`;
     cups.target = "_blank";
     const links = el("div", "actions");
     links.append(cups);

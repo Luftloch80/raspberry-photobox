@@ -77,6 +77,17 @@ sudo tee /etc/caddy/Caddyfile > /dev/null <<CADDY
 	reverse_proxy localhost:$PORT
 }
 
+# CUPS-Weboberfläche mit demselben Zertifikat (https://<pi>:8631).
+# CUPS sieht die Anfragen als lokal an und leitet nicht auf sein eigenes,
+# nicht vertrauenswürdiges HTTPS um (sonst lädt die Seite dauernd neu).
+:8631 {
+	tls $CERT $KEY
+	reverse_proxy localhost:631 {
+		header_up Host localhost:631
+		header_down Location "^https?://localhost:631(.*)\$" "https://{http.request.hostport}\$1"
+	}
+}
+
 :80 {
 	redir https://{host}{uri}
 }
@@ -94,4 +105,5 @@ echo "Fertig! Falls das iPad das Zertifikat noch nicht kennt, einmalig in Safari
 echo "  1. Zertifikat laden:   http://$IP:$PORT/ca.crt   → 'Zulassen'"
 echo "  2. Einstellungen → 'Profil geladen' → Installieren"
 echo "  3. Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen → einschalten"
+echo "Drucker verwalten (CUPS):  https://$IP:8631"
 echo "Photobox öffnen:  https://$IP   ·   im Hotspot: https://$HOTSPOT_IP   ·   https://$HOST"

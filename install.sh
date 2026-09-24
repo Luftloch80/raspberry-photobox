@@ -12,7 +12,7 @@ if ! sudo apt-get update; then
 fi
 sudo apt-get install -y python3-venv python3-pip cups printer-driver-gutenprint libjpeg-dev zlib1g-dev iw
 sudo usermod -aG lpadmin "$USER_NAME"
-# CUPS-Weboberfläche auch im Heimnetz erreichbar machen (http://<pi-adresse>:631)
+# CUPS-Weboberfläche auch im Heimnetz erreichbar machen (über Caddy: https://<pi-adresse>:8631)
 sudo cupsctl --remote-admin --remote-any --share-printers
 sudo systemctl restart cups
 
@@ -40,5 +40,5 @@ IP="$(hostname -I | awk '{print $1}')"
 echo
 echo "Fertig! Die Photobox läuft auf https://$IP"
 echo "Nächste Schritte (siehe README.md):"
-echo "  1. Drucker in CUPS einrichten:  https://$IP:631"
+echo "  1. Drucker in CUPS einrichten:  https://$IP:8631"
 echo "  2. Optional eigenen WLAN-Hotspot einrichten:  ./setup-hotspot.sh"
