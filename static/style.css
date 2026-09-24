@@ -493,3 +493,9 @@ html.scrollable, html.scrollable body { height: auto; min-height: 100%; overflow
 .row .value.muted { color: var(--muted); }
 .panel .error { color: #ff7b8f; margin: 0; font-size: 14px; }
 .panel .muted { color: var(--muted); margin: 0; font-size: 14px; line-height: 1.5; }
+
+.key-test-box { background: var(--panel-2); border-radius: 12px; padding: 12px 14px; }
+.key-test-box strong { display: block; font-size: 15px; margin-bottom: 4px; }
+.key-test { margin: 0; font-size: 14px; color: var(--muted); }
+.key-test.ok { color: var(--ok); }
+.key-test.no { color: var(--warn); }

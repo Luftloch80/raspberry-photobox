@@ -17,7 +17,10 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 
 - Live-Kamerabild im Vollbild (Front- oder Rückkamera, optional gespiegelt)
 - Großer Auslöser, Countdown (aus / 3 / 5 / 10 s) und Blitz-Effekt
-- Auslösen auch per Bluetooth-Fernauslöser oder Tastatur (Leertaste/Enter)
+- Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
+  (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
+  Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei
+  Webseiten an – beim „AB Shutter3“ den kleinen Android-Knopf (Enter) verwenden.
 - Galerie mit allen Fotos, neues Foto wird hervorgehoben
 - Großansicht mit **Drucken**-Button und Anzahl der Abzüge
 - Optional: automatisch nach jeder Aufnahme drucken

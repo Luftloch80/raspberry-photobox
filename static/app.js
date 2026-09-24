@@ -248,12 +248,30 @@
   shutter.addEventListener("click", takePhoto);
 
   // Auslösen auch per Bluetooth-Fernauslöser / Tastatur (Leertaste, Enter, Lautstärke-Tasten senden oft Enter)
+  // Tasten, die Bluetooth-Auslöser, Präsentations-Fernbedienungen und Fußpedale senden.
+  // (Die Lauter-Taste von Kamera-Auslösern kommt unter iPadOS nicht bei Webseiten an.)
+  const TRIGGER_KEYS = new Set([
+    " ", "Enter", "PageDown", "PageUp", "ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp",
+    "MediaPlayPause", "MediaTrackNext", "AudioVolumeUp", "AudioVolumeDown", "b", "B", ".",
+  ]);
+
   document.addEventListener("keydown", (e) => {
-    if (!viewer.hidden || !$("settings").hidden) return;
-    if (e.key === " " || e.key === "Enter" || e.key === "AudioVolumeUp") {
-      e.preventDefault();
-      takePhoto();
+    const isTrigger = TRIGGER_KEYS.has(e.key);
+    if (!$("settings").hidden) {
+      // Tastentest in den Einstellungen
+      const t = $("keyTest");
+      t.textContent = `Erkannt: „${e.key === " " ? "Leertaste" : e.key}“ – ` +
+        (isTrigger ? "löst ein Foto aus ✓" : "wird nicht als Auslöser verwendet");
+      t.className = "key-test " + (isTrigger ? "ok" : "no");
+      return;
     }
+    if (!isTrigger || e.repeat) return;
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    if (busy) return;
+    // In der Fotoansicht: zurück zur Kamera und gleich das nächste Foto
+    if (!viewer.hidden) closeViewer();
+    takePhoto();
   });
 
   // ---------------------------------------------------------------------
