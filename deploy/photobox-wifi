@@ -12,26 +12,54 @@ CON=Photobox-Hotspot
 IFACE=wlan0
 LOG_TAG=photobox-wifi
 
-log() { logger -t "$LOG_TAG" -- "$*"; echo "$*"; }
+STATUS_LOG=/run/photobox-wifi.log   # letzte Meldungen, für die Statusseite
+
+log() {
+  logger -t "$LOG_TAG" -- "$*"
+  echo "$*"
+  { echo "$(date '+%H:%M:%S') $*"; tail -n 19 "$STATUS_LOG" 2> /dev/null || true; } > "$STATUS_LOG.tmp" \
+    && mv "$STATUS_LOG.tmp" "$STATUS_LOG" && chmod 644 "$STATUS_LOG"
+}
+
+# nmcli ausführen; Fehlermeldungen ins Systemprotokoll (journalctl -t photobox-wifi)
+nm() {
+  local out
+  if out="$(nmcli "$@" 2>&1)"; then
+    return 0
+  fi
+  log "nmcli $* fehlgeschlagen: $out"
+  return 1
+}
 
 hotspot_up() {
-  nmcli --wait 30 connection up "$CON" > /dev/null
+  nm --wait 30 connection up "$CON"
+}
+
+current_wifi() {
+  nmcli -t -f DEVICE,STATE,CONNECTION device | awk -F: -v i="$IFACE" '$1==i && $2=="connected" {print $3}'
 }
 
 case "${1:-}" in
   hotspot)
-    log "Schalte auf Hotspot"
+    previous="$(current_wifi)"
+    log "Schalte auf Hotspot (bisher: ${previous:-keine Verbindung})"
+    rfkill unblock wifi 2> /dev/null || true
     if hotspot_up; then
-      log "Hotspot aktiv"
-    else
-      log "Hotspot konnte nicht gestartet werden"
-      exit 1
+      log "Hotspot aktiv: $(nmcli -g 802-11-wireless.ssid connection show "$CON")"
+      exit 0
     fi
+    # Hotspot klappt nicht: zurück ins vorherige WLAN, damit der Pi erreichbar bleibt
+    if [ -n "$previous" ] && [ "$previous" != "$CON" ]; then
+      log "Hotspot fehlgeschlagen – verbinde wieder mit '$previous'"
+      nm --wait 30 connection up "$previous" ifname "$IFACE" || true
+    fi
+    exit 1
     ;;
 
   client)
     log "Schalte auf normales WLAN"
     nmcli connection down "$CON" > /dev/null 2>&1 || true
+    rfkill unblock wifi 2> /dev/null || true
     nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
     sleep 4
     visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
@@ -47,7 +75,7 @@ case "${1:-}" in
         continue
       fi
       log "Verbinde mit '$name'"
-      if nmcli --wait 30 connection up "$name" ifname "$IFACE" > /dev/null 2>&1; then
+      if nm --wait 30 connection up "$name" ifname "$IFACE"; then
         log "Verbunden mit '$name'"
         exit 0
       fi

@@ -482,3 +482,6 @@ html.scrollable, html.scrollable body { height: auto; min-height: 100%; overflow
 .switch-text p { margin: 0 0 10px; line-height: 1.5; }
 .switch-text ol { margin: 0 0 12px; padding-left: 22px; line-height: 1.7; }
 .switch-text .muted { color: var(--muted); font-size: 14px; }
+.switch-log { font-size: 13px; color: var(--muted); }
+.switch-log summary { cursor: pointer; }
+.switch-log pre { white-space: pre-wrap; margin: 6px 0 0; font-size: 12px; background: var(--panel-2); padding: 8px 10px; border-radius: 8px; }

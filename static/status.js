@@ -142,6 +142,12 @@
 
     if (hint) wrap.append(el("p", "muted", hint));
     else if (w.known.length) wrap.append(el("p", "muted", "Bekannte WLANs: " + w.known.map((n) => n.ssid).join(", ")));
+    if (w.switch_log && w.switch_log.length) {
+      const details = el("details", "switch-log");
+      details.append(el("summary", "", "Letzte Umschaltung: " + w.switch_log[0]));
+      details.append(el("pre", "", w.switch_log.join("\n")));
+      wrap.append(details);
+    }
     return wrap;
   }
 

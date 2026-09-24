@@ -117,6 +117,11 @@ def wifi_status():
 
     info["known"] = known_networks()
     info["hotspot_ssid"] = hotspot_ssid()
+    try:
+        # Neueste Meldung zuerst (siehe deploy/photobox-wifi)
+        info["switch_log"] = Path(os.environ.get("PHOTOBOX_WIFI_LOG", "/run/photobox-wifi.log")).read_text().splitlines()[:6]
+    except OSError:
+        info["switch_log"] = []
     info["switch_available"] = wifi_switch_available()
 
     if not wifi_con:
