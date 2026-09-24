@@ -1,0 +1,67 @@
+#!/bin/bash
+# Photobox: zwischen eigenem Hotspot und normalem WLAN umschalten (läuft als root).
+#
+#   photobox-wifi hotspot   Hotspot einschalten
+#   photobox-wifi client    mit einem bekannten WLAN verbinden; klappt das nicht,
+#                           wird der Hotspot wieder eingeschaltet
+#
+# Die Photobox ruft das Skript per "sudo -n" auf (siehe /etc/sudoers.d/photobox-wifi).
+set -u
+
+CON=Photobox-Hotspot
+IFACE=wlan0
+LOG_TAG=photobox-wifi
+
+log() { logger -t "$LOG_TAG" -- "$*"; echo "$*"; }
+
+hotspot_up() {
+  nmcli --wait 30 connection up "$CON" > /dev/null
+}
+
+case "${1:-}" in
+  hotspot)
+    log "Schalte auf Hotspot"
+    if hotspot_up; then
+      log "Hotspot aktiv"
+    else
+      log "Hotspot konnte nicht gestartet werden"
+      exit 1
+    fi
+    ;;
+
+  client)
+    log "Schalte auf normales WLAN"
+    nmcli connection down "$CON" > /dev/null 2>&1 || true
+    nmcli device wifi rescan ifname "$IFACE" > /dev/null 2>&1 || true
+    sleep 4
+    visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" --rescan no 2> /dev/null)"
+
+    # Bekannte WLAN-Verbindungen (ohne Hotspot), höchste Priorität zuerst
+    while IFS=: read -r prio name; do
+      [ -n "$name" ] || continue
+      ssid="$(nmcli -g 802-11-wireless.ssid connection show "$name" 2> /dev/null)"
+      mode="$(nmcli -g 802-11-wireless.mode connection show "$name" 2> /dev/null)"
+      [ "$mode" = "ap" ] && continue
+      if [ -n "$ssid" ] && ! grep -Fxq -- "$ssid" <<< "$visible"; then
+        log "WLAN '$ssid' nicht in Reichweite"
+        continue
+      fi
+      log "Verbinde mit '$name'"
+      if nmcli --wait 30 connection up "$name" ifname "$IFACE" > /dev/null 2>&1; then
+        log "Verbunden mit '$name'"
+        exit 0
+      fi
+    done < <(nmcli -t -f AUTOCONNECT-PRIORITY,NAME,TYPE connection show \
+               | awk -F: -v hs="$CON" '$3=="802-11-wireless" && $2!=hs {print $1":"$2}' \
+               | sort -t: -k1,1nr)
+
+    log "Kein bekanntes WLAN erreichbar – schalte zurück auf Hotspot"
+    hotspot_up
+    exit 2
+    ;;
+
+  *)
+    echo "Aufruf: $0 hotspot | client" >&2
+    exit 1
+    ;;
+esac

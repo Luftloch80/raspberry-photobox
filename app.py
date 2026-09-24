@@ -251,6 +251,21 @@ def status_api():
     )
 
 
+@app.post("/api/wifi/mode")
+def wifi_mode():
+    mode = (request.get_json(silent=True) or {}).get("mode")
+    if mode not in ("hotspot", "client"):
+        return jsonify(error="Unbekannter Modus"), 400
+    if not status.wifi_switch_available():
+        return jsonify(error="Umschalten ist nicht eingerichtet (./setup-wifi-switch.sh)"), 503
+    if mode == "client" and not status.known_networks():
+        return jsonify(error="Kein normales WLAN gespeichert"), 409
+    if mode == "hotspot" and not status.hotspot_configured():
+        return jsonify(error="Hotspot ist nicht eingerichtet (./setup-hotspot.sh)"), 409
+    status.switch_wifi(mode)
+    return jsonify(ok=True, mode=mode), 202
+
+
 @app.post("/api/printers/<name>/<action>")
 def printer_action(name, action):
     if action not in ("resume", "cancel") or not re.fullmatch(r"[\w.@-]+", name):

@@ -81,6 +81,7 @@
       head.append(pill("WLAN aus", w.ethernet ? "orange" : "red"));
     }
     box.append(head);
+    box.append(renderSwitch(w));
 
     if (w.ssid) box.append(row("WLAN-Name", w.ssid, "strong"));
     if (w.channel) box.append(row("Kanal", w.channel));
@@ -110,6 +111,91 @@
         list.append(item);
       }
       box.append(list);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Umschalter Hotspot / WLAN
+  // ---------------------------------------------------------------------
+
+  let lastStatus = null;
+  let switching = false;
+
+  function renderSwitch(w) {
+    const wrap = el("div", "wifi-switch");
+    const seg = el("div", "segmented");
+    const hs = el("button", w.mode === "hotspot" ? "active" : "", "Hotspot");
+    const cl = el("button", w.mode === "client" ? "active" : "", "WLAN");
+    hs.type = cl.type = "button";
+    seg.append(hs, cl);
+    wrap.append(seg);
+
+    let hint = "";
+    if (!w.switch_available) hint = "Umschalten nicht eingerichtet – auf dem Pi ./setup-wifi-switch.sh ausführen.";
+    else if (!w.hotspot_ssid) hint = "Kein Hotspot eingerichtet – auf dem Pi ./setup-hotspot.sh ausführen.";
+    else if (!w.known.length) hint = "Kein normales WLAN gespeichert.";
+
+    hs.disabled = switching || !w.switch_available || !w.hotspot_ssid || w.mode === "hotspot";
+    cl.disabled = switching || !w.switch_available || !w.known.length || w.mode === "client";
+    hs.onclick = () => askSwitch("hotspot");
+    cl.onclick = () => askSwitch("client");
+
+    if (hint) wrap.append(el("p", "muted", hint));
+    else if (w.known.length) wrap.append(el("p", "muted", "Bekannte WLANs: " + w.known.map((n) => n.ssid).join(", ")));
+    return wrap;
+  }
+
+  function askSwitch(mode) {
+    const w = lastStatus.wifi;
+    const host = (lastStatus.system.hostname || "raspberrypi") + ".local";
+    const modal = $("switchModal");
+    const text = $("switchText");
+    text.replaceChildren();
+    if (mode === "client") {
+      const nets = w.known.map((n) => "„" + n.ssid + "“").join(" oder ");
+      $("switchTitle").textContent = "Ins normale WLAN wechseln?";
+      text.append(
+        el("p", "", `Die Photobox verbindet sich mit ${nets}. Der Hotspot wird dabei ausgeschaltet, das iPad verliert kurz die Verbindung.`),
+        el("p", "", "Danach am iPad:"),
+        list([`Einstellungen → WLAN → ${nets} wählen`, `In Safari https://${host} öffnen`]),
+        el("p", "muted", "Ist kein bekanntes WLAN erreichbar, schaltet die Photobox nach etwa einer Minute automatisch zurück auf den Hotspot."),
+      );
+    } else {
+      $("switchTitle").textContent = "Auf Hotspot umschalten?";
+      text.append(
+        el("p", "", `Die Photobox trennt sich vom WLAN „${w.ssid}“ und startet ihren eigenen Hotspot. Das iPad verliert kurz die Verbindung.`),
+        el("p", "", "Danach am iPad:"),
+        list([`Einstellungen → WLAN → „${w.hotspot_ssid}“ wählen`, "In Safari https://10.42.0.1 öffnen"]),
+      );
+    }
+    $("switchConfirm").onclick = () => doSwitch(mode);
+    modal.hidden = false;
+  }
+
+  function list(items) {
+    const ol = el("ol");
+    for (const i of items) ol.append(el("li", "", i));
+    return ol;
+  }
+
+  async function doSwitch(mode) {
+    $("switchModal").hidden = true;
+    switching = true;
+    try {
+      const res = await fetch("/api/wifi/mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Fehler ${res.status}`);
+      toast(mode === "client" ? "Wechsle ins WLAN … jetzt das iPad umstellen" : "Starte Hotspot … jetzt das iPad umstellen", "ok");
+    } catch (err) {
+      // Bricht die Verbindung schon während der Anfrage ab, hat das Umschalten begonnen
+      if (err instanceof TypeError) toast("Umschalten läuft – jetzt das iPad umstellen", "ok");
+      else toast(err.message, "error");
+    } finally {
+      setTimeout(() => { switching = false; }, 60000);
     }
   }
 
@@ -251,6 +337,7 @@
       const res = await fetch("/api/status", { credentials: "same-origin" });
       if (!res.ok) throw new Error(`Fehler ${res.status}`);
       const data = await res.json();
+      lastStatus = data;
       renderWifi(data.wifi);
       renderPrinter(data.printer, (data.printer.available && data.printer.jobs) || []);
       renderJobs(data.printer);
@@ -262,6 +349,8 @@
       $("updated").classList.add("stale");
     }
   }
+
+  $("switchCancel").onclick = () => { $("switchModal").hidden = true; };
 
   refresh();
   setInterval(() => { if (document.visibilityState === "visible") refresh(); }, REFRESH_MS);

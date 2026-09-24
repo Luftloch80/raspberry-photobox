@@ -51,6 +51,17 @@
     </section>
   </main>
 
+  <div class="modal" id="switchModal" hidden>
+    <div class="panel">
+      <h2 id="switchTitle"></h2>
+      <div class="switch-text" id="switchText"></div>
+      <div class="panel-actions">
+        <button class="btn" id="switchCancel" type="button">Abbrechen</button>
+        <button class="btn primary" id="switchConfirm" type="button">Umschalten</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" hidden></div>
   <script src="{{ url_for('static', filename='status.js', v=v) }}"></script>
 </body>

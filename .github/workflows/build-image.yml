@@ -1,12 +1,8 @@
 name: Raspberry-Pi-Image bauen
 
+# Nur manuell starten: Actions → "Raspberry-Pi-Image bauen" → "Run workflow"
 on:
   workflow_dispatch:
-  push:
-    branches: ["**"]
-    paths:
-      - "image/**"
-      - ".github/workflows/build-image.yml"
 
 permissions:
   contents: write

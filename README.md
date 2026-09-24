@@ -22,7 +22,8 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Großansicht mit **Drucken**-Button und Anzahl der Abzüge
 - Optional: automatisch nach jeder Aufnahme drucken
 - Druckerstatus-Anzeige
-- **Statusseite** (`/status`): WLAN/Hotspot mit verbundenen Geräten, Drucker mit Fehlern
+- **Statusseite** (`/status`): WLAN/Hotspot mit verbundenen Geräten und **Schalter
+  Hotspot ↔ normales WLAN**, Drucker mit Fehlern
   wie „Papier leer“, Warteschlange (abbrechen/fortsetzen), Temperatur und Speicherplatz
 - Als App zum Home-Bildschirm hinzufügbar (Vollbild, ohne Safari-Leisten)
 - Bildschirm bleibt an (Wake Lock), Hinweis bei Hochformat
@@ -35,7 +36,8 @@ Booten automatisch den WLAN-Hotspot, die Photobox, CUPS und HTTPS.
 1. Mit dem [Raspberry Pi Imager](https://www.raspberrypi.com/software/) auf eine SD-Karte
    schreiben: *Eigenes Image verwenden*, bei der Frage nach Anpassungen **Nein** wählen.
 2. Optional am PC auf der SD-Karte (Laufwerk `bootfs`) die Datei **`photobox.txt`**
-   anpassen: WLAN-Name, WLAN-Passwort, WLAN-Kanal, Drucker und Druckoptionen.
+   anpassen: Hotspot-Name und -Passwort, normales WLAN (für den Umschalter),
+   Startmodus, WLAN-Kanal, Drucker und Druckoptionen.
    Änderungen gelten auch später nach jedem Neustart.
 3. Pi starten und 1–2 Minuten warten, bis das WLAN **Photobox** erscheint
    (Standard-Passwort `photobox123`).
@@ -50,8 +52,8 @@ SSH: `ssh photobox@10.42.0.1` (Passwort `photobox`, bitte mit `passwd` ändern).
 LAN-Kabel ist der Pi zusätzlich im Heimnetz erreichbar (`photobox.local`).
 
 Das Image wird von GitHub Actions gebaut (`.github/workflows/build-image.yml`, Stage in
-`image/`). Ein neuer Build startet bei Änderungen in `image/` oder
-manuell unter *Actions → Raspberry-Pi-Image bauen → Run workflow*. Wer ein anderes
+`image/`). Ein neuer Build wird manuell gestartet unter
+*Actions → Raspberry-Pi-Image bauen → Run workflow*. Wer ein anderes
 Standard-Passwort möchte, legt das Repository-Secret `PI_PASSWORD` an.
 
 ## 1. Installation auf einem vorhandenen Raspberry Pi
@@ -114,7 +116,10 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 - Der Hotspot startet **automatisch**, wenn kein bekanntes WLAN in Reichweite ist,
   also z. B. auf der Party. Zu Hause verbindet sich der Pi weiter mit dem Heim-WLAN.
 - Photobox im Hotspot: **https://10.42.0.1**
-- Manuell umschalten: `./hotspot.sh on`, `./hotspot.sh off`, `./hotspot.sh status`.
+- Umschalten zwischen Hotspot und normalem WLAN: auf der **Statusseite** mit dem Schalter
+  in der WLAN-Karte, oder per SSH mit `./hotspot.sh on`, `./hotspot.sh off`, `./hotspot.sh status`.
+  Findet der Pi beim Wechsel kein bekanntes WLAN, schaltet er automatisch zurück auf den Hotspot.
+  Im normalen WLAN ist die Photobox unter `https://<hostname>.local` erreichbar.
   Ist der Pi per WLAN mit SSH verbunden, bricht die Verbindung bei `on` ab.
 - Das iPad meldet im Hotspot „Keine Internetverbindung“. Das ist normal, die Photobox
   funktioniert trotzdem.
@@ -157,4 +162,5 @@ immer HTTPS nötig.
 | `install.sh`, `deploy/photobox.service` | Installation und systemd-Dienst für den Pi |
 | `setup-local-https.sh` | HTTPS im lokalen Netz (Caddy) |
 | `setup-hotspot.sh`, `hotspot.sh` | Eigener WLAN-Hotspot des Pi |
+| `setup-wifi-switch.sh`, `deploy/photobox-wifi` | Umschalter Hotspot ↔ WLAN für die Statusseite |
 | `photos/` | Gespeicherte Fotos (wird automatisch angelegt) |

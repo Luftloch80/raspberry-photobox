@@ -456,3 +456,29 @@ html.scrollable, html.scrollable body { height: auto; min-height: 100%; overflow
 .meter { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
 .meter i { display: block; height: 100%; background: var(--ok); }
 .meter i.bad { background: var(--accent); }
+
+.wifi-switch { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 6px; }
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--panel-2);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+.segmented button {
+  border: 0;
+  border-radius: 9px;
+  padding: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+.segmented button.active { background: var(--accent); color: #fff; }
+.segmented button:disabled:not(.active) { opacity: .45; cursor: default; }
+.segmented button:disabled.active { opacity: 1; }
+.switch-text p { margin: 0 0 10px; line-height: 1.5; }
+.switch-text ol { margin: 0 0 12px; padding-left: 22px; line-height: 1.7; }
+.switch-text .muted { color: var(--muted); font-size: 14px; }

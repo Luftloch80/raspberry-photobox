@@ -57,6 +57,9 @@ sudo nmcli connection add type wifi ifname "$IFACE" con-name "$CON" ssid "$SSID"
   wifi-sec.group ccmp \
   wifi-sec.psk "$PASS" > /dev/null
 
+echo "==> WLAN-Umschalter für die Statusseite einrichten"
+"$DIR/setup-wifi-switch.sh"
+
 echo "==> Zertifikat um die Hotspot-Adresse $HOTSPOT_IP erweitern"
 "$DIR/setup-local-https.sh" > /dev/null
 

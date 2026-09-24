@@ -11,6 +11,16 @@ WLAN_NAME=Photobox
 # WLAN-Passwort (mindestens 8 Zeichen)
 WLAN_PASSWORT=photobox123
 
+# Normales WLAN (z. B. zu Hause), in das die Photobox auf der Statusseite
+# umgeschaltet werden kann. Leer lassen, wenn nicht benötigt.
+HEIM_WLAN_NAME=
+HEIM_WLAN_PASSWORT=
+
+# Womit die Photobox nach dem Einschalten startet:
+#   hotspot = eigenes WLAN (Standard)
+#   wlan    = normales WLAN; ist es nicht erreichbar, startet der Hotspot
+START_MODUS=hotspot
+
 # WLAN-Kanal (1-13) und Land
 WLAN_KANAL=6
 WLAN_LAND=DE

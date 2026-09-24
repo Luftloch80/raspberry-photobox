@@ -115,6 +115,10 @@ def wifi_status():
             if state.startswith("connected"):
                 wifi_con = con
 
+    info["known"] = known_networks()
+    info["hotspot_ssid"] = hotspot_ssid()
+    info["switch_available"] = wifi_switch_available()
+
     if not wifi_con:
         info["message"] = "WLAN nicht verbunden"
         return info
@@ -139,6 +143,59 @@ def wifi_status():
                 info["signal"] = int(signal) if signal.isdigit() else None
                 info["channel"] = info["channel"] or chan
     return info
+
+
+WIFI_HELPER = os.environ.get("PHOTOBOX_WIFI_HELPER", "/usr/local/sbin/photobox-wifi")
+HOTSPOT_CON = "Photobox-Hotspot"
+
+
+def known_networks():
+    """Gespeicherte normale WLANs (ohne den Photobox-Hotspot)."""
+    out = run(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]) or ""
+    nets = []
+    for line in out.splitlines():
+        name, typ = (split_terse(line) + ["", ""])[:2]
+        if typ != "802-11-wireless" or name == HOTSPOT_CON:
+            continue
+        props = run(["nmcli", "-g", "802-11-wireless.mode,802-11-wireless.ssid",
+                     "connection", "show", name]) or ""
+        mode, ssid = (props.splitlines() + ["", ""])[:2]
+        if mode != "ap":
+            nets.append({"name": name, "ssid": ssid.replace("\\:", ":") or name})
+    return nets
+
+
+def wifi_switch_available():
+    """Darf die Photobox umschalten? (Hilfsskript + sudo-Regel vorhanden)"""
+    if not os.path.exists(WIFI_HELPER):
+        return False
+    return run(["sudo", "-n", "-l", WIFI_HELPER]) is not None
+
+
+def hotspot_ssid():
+    """WLAN-Name des Photobox-Hotspots, oder None wenn keiner eingerichtet ist."""
+    out = run(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", HOTSPOT_CON])
+    return out.strip().replace("\\:", ":") if out is not None else None
+
+
+def hotspot_configured():
+    return hotspot_ssid() is not None
+
+
+def switch_wifi(mode):
+    """Umschalten im Hintergrund starten.
+
+    Das Umschalten trennt das iPad vom bisherigen WLAN, daher wartet die
+    Photobox nicht auf das Ergebnis. Das Hilfsskript schaltet selbst zurück
+    auf den Hotspot, wenn kein bekanntes WLAN erreichbar ist.
+    """
+    if mode not in ("hotspot", "client"):
+        raise ValueError(mode)
+    subprocess.Popen(
+        ["sudo", "-n", WIFI_HELPER, mode],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True, env=ENV,
+    )
 
 
 # --------------------------------------------------------------------------

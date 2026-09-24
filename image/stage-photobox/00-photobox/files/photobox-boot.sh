@@ -21,6 +21,9 @@ WLAN_KANAL=6
 WLAN_LAND=DE
 DRUCKER=
 DRUCK_OPTIONEN=fit-to-page
+HEIM_WLAN_NAME=
+HEIM_WLAN_PASSWORT=
+START_MODUS=hotspot
 
 if [ -f "$CONF" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
@@ -32,7 +35,7 @@ if [ -f "$CONF" ]; then
     val="${val#"${val%%[![:space:]]*}"}"
     val="${val%"${val##*[![:space:]]}"}"
     case "$key" in
-      WLAN_NAME|WLAN_PASSWORT|WLAN_KANAL|WLAN_LAND|DRUCKER|DRUCK_OPTIONEN) printf -v "$key" '%s' "$val" ;;
+      WLAN_NAME|WLAN_PASSWORT|WLAN_KANAL|WLAN_LAND|DRUCKER|DRUCK_OPTIONEN|HEIM_WLAN_NAME|HEIM_WLAN_PASSWORT|START_MODUS) printf -v "$key" '%s' "$val" ;;
     esac
   done < "$CONF"
 fi
@@ -46,6 +49,17 @@ WLAN_NAME="${WLAN_NAME//;/}"
 [[ "$WLAN_KANAL" =~ ^([1-9]|1[0-3])$ ]] || WLAN_KANAL=6
 [[ "$WLAN_LAND" =~ ^[A-Za-z]{2}$ ]] || WLAN_LAND=DE
 WLAN_LAND="${WLAN_LAND^^}"
+START_MODUS="${START_MODUS,,}"
+HEIM_WLAN_NAME="${HEIM_WLAN_NAME//;/}"
+if [ -z "$HEIM_WLAN_NAME" ]; then
+  START_MODUS=hotspot
+elif [ -n "$HEIM_WLAN_PASSWORT" ] && { [ ${#HEIM_WLAN_PASSWORT} -lt 8 ] || [ ${#HEIM_WLAN_PASSWORT} -gt 63 ]; }; then
+  log "HEIM_WLAN_PASSWORT muss 8-63 Zeichen haben – normales WLAN wird ignoriert"
+  HEIM_WLAN_NAME=
+  START_MODUS=hotspot
+fi
+# Startmodus: Hotspot mit höchster Priorität, oder nur als Rückfallebene
+if [ "$START_MODUS" = "wlan" ]; then HOTSPOT_PRIO=-10; else HOTSPOT_PRIO=100; fi
 
 # ---- WLAN-Land ----
 if [ "$(cat "$STATE/wifi-country" 2> /dev/null)" != "$WLAN_LAND" ]; then
@@ -62,7 +76,7 @@ uuid=6f1c2b1e-5d3a-4c8e-9a47-70b0c0ffee01
 type=wifi
 interface-name=wlan0
 autoconnect=true
-autoconnect-priority=100
+autoconnect-priority=$HOTSPOT_PRIO
 
 [wifi]
 mode=ap
@@ -85,6 +99,34 @@ address1=$HOTSPOT_IP/24
 method=disabled
 NM
 chmod 600 "$NM_FILE"
+
+# ---- Normales WLAN (optional) ----
+HOME_FILE=/etc/NetworkManager/system-connections/Photobox-Heim-WLAN.nmconnection
+if [ -n "$HEIM_WLAN_NAME" ]; then
+  {
+    cat << NM
+[connection]
+id=Photobox-Heim-WLAN
+uuid=6f1c2b1e-5d3a-4c8e-9a47-70b0c0ffee02
+type=wifi
+interface-name=wlan0
+autoconnect=true
+autoconnect-priority=50
+
+[wifi]
+mode=infrastructure
+ssid=$HEIM_WLAN_NAME
+
+NM
+    if [ -n "$HEIM_WLAN_PASSWORT" ]; then
+      printf '[wifi-security]\nkey-mgmt=wpa-psk\npsk=%s\n\n' "$HEIM_WLAN_PASSWORT"
+    fi
+    printf '[ipv4]\nmethod=auto\n\n[ipv6]\nmethod=auto\n'
+  } > "$HOME_FILE"
+  chmod 600 "$HOME_FILE"
+else
+  rm -f "$HOME_FILE"
+fi
 umask 022
 
 # ---- Photobox-Konfiguration ----
