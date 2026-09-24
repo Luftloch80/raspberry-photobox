@@ -20,7 +20,7 @@
   const defaults = { countdown: 3, mirror: true, autoPrint: false };
   const SERIES = 4;              // immer 4 Fotos hintereinander
   const TIMERS = [3, 5];         // wählbarer Countdown in Sekunden
-  const REVIEW_MS = 5000;        // Fotos nach der Serie so lange zeigen, bevor die Druckansicht kommt
+  const REVIEW_MS = 2000;        // Fotos nach der Serie so lange zeigen, bevor die Druckansicht kommt
   const settings = Object.assign({}, defaults, loadSettings());
   const FACING = "user"; // immer die Frontkamera (Selfie)
   delete settings.camera; // frühere Einstellungen, nicht mehr verwendet
