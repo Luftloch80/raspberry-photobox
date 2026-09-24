@@ -16,7 +16,10 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 ## Funktionen
 
 - Live-Kamerabild der Frontkamera im Vollbild (optional gespiegelt)
-- Großer Auslöser, Countdown (aus / 3 / 5 / 10 s) und Blitz-Effekt
+- Großer Auslöser mit Blitz-Effekt
+- Knopf **„So geht's“** oben in der Mitte für Gäste: kurze Anleitung, Timer (aus / 3 / 5 / 10 s)
+  und **Serien von 1–4 Fotos** hintereinander (Countdown vor jedem Foto)
+- Serien werden zusammen angezeigt: einzeln oder **alle drucken**
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei
@@ -155,7 +158,8 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
    - *Einstellungen → Bedienungshilfen → Geführter Zugriff* aktivieren und in der Photobox
      dreimal die Seitentaste drücken. Dann können Gäste die App nicht verlassen.
    - *Einstellungen → Anzeige & Helligkeit → Automatische Sperre: Nie*
-6. Über das ⚙️-Symbol oben links: Countdown, Spiegeln, Auto-Druck, Fernauslöser-Test.
+6. Über das ⚙️-Symbol oben links (für dich): Spiegeln, Auto-Druck, Fernauslöser-Test, Statusseite.
+   Timer und Serien stellen Gäste über „So geht's“ oben in der Mitte ein.
 
 ## Lokale Entwicklung
 

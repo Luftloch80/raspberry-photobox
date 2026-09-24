@@ -20,7 +20,7 @@
   // Einstellungen (pro Gerät gespeichert)
   // ---------------------------------------------------------------------
 
-  const defaults = { countdown: 3, mirror: true, autoPrint: false };
+  const defaults = { countdown: 3, burst: 1, mirror: true, autoPrint: false };
   const settings = Object.assign({}, defaults, loadSettings());
   const FACING = "user"; // immer die Frontkamera (Selfie)
   delete settings.camera; // frühere Kamera-Auswahl nicht mehr verwendet
@@ -223,28 +223,47 @@
     return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
   }
 
+  function showShotLabel(text) {
+    const el = $("shotLabel");
+    el.textContent = text || "";
+    el.hidden = !text;
+  }
+
+  // Ein Foto bzw. eine Serie von bis zu 4 Fotos aufnehmen
   async function takePhoto() {
     if (busy || shutter.disabled) return;
     busy = true;
     shutter.disabled = true;
+    document.body.classList.add("shooting");
     requestWakeLock();
+    const total = Math.max(1, Math.min(4, settings.burst || 1));
+    const items = [];
     try {
-      if (settings.countdown > 0) await runCountdown(settings.countdown);
-      const blob = await grabFrame();
-      flash.classList.remove("on");
-      void flash.offsetWidth;
-      flash.classList.add("on");
-      if (!blob) throw new Error("Foto konnte nicht erstellt werden");
-
-      openViewer({ localUrl: URL.createObjectURL(blob), blob, isNew: true });
-      await uploadCurrent();
+      for (let i = 0; i < total; i++) {
+        if (total > 1) showShotLabel(`Foto ${i + 1} von ${total}`);
+        // Ohne Timer bei Serien kurz Zeit zum Umposieren lassen
+        const secs = settings.countdown > 0 ? settings.countdown : (i > 0 ? 2 : 0);
+        if (secs) await runCountdown(secs);
+        const blob = await grabFrame();
+        flash.classList.remove("on");
+        void flash.offsetWidth;
+        flash.classList.add("on");
+        if (!blob) throw new Error("Foto konnte nicht erstellt werden");
+        const item = { localUrl: URL.createObjectURL(blob), blob, isNew: true };
+        items.push(item);
+        uploadItem(item); // speichert im Hintergrund, während die Serie weiterläuft
+        if (i < total - 1) await sleep(800);
+      }
     } catch (err) {
       toast(err.message || String(err), "error");
     } finally {
+      showShotLabel("");
       countdownEl.hidden = true;
+      document.body.classList.remove("shooting");
       busy = false;
       shutter.disabled = false;
     }
+    if (items.length) openViewer(items, 0);
   }
 
   shutter.addEventListener("click", takePhoto);
@@ -271,6 +290,7 @@
     if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
     e.preventDefault();
     if (busy) return;
+    if (!$("guide").hidden) closeGuide();
     // In der Fotoansicht: zurück zur Kamera und gleich das nächste Foto
     if (!viewer.hidden) closeViewer();
     takePhoto();
@@ -310,7 +330,7 @@
       img.loading = "lazy";
       img.alt = "";
       btn.appendChild(img);
-      btn.addEventListener("click", () => openViewer({ photo: p }));
+      btn.addEventListener("click", () => openViewer([{ photo: p }], 0));
       thumbs.appendChild(btn);
     }
   }
@@ -319,9 +339,12 @@
   // Großansicht, Speichern & Drucken
   // ---------------------------------------------------------------------
 
-  let current = null; // { photo?, blob?, localUrl?, isNew }
+  let series = [];   // Fotos in der Großansicht: [{ photo?, blob?, localUrl?, isNew, uploadFailed? }]
+  let current = null; // gerade angezeigtes Foto aus series
   let copies = 1;
   let idleTimer;
+  const printAllBtn = $("printAllBtn");
+  const strip = $("viewerStrip");
 
   function setCopies(n) {
     copies = Math.max(1, Math.min(maxCopies, n));
@@ -339,31 +362,67 @@
     printBtn.disabled = !saved;
     deleteBtn.disabled = !saved;
     retryUploadBtn.hidden = saved || !current || !current.uploadFailed;
+    const multi = series.length > 1;
+    printAllBtn.hidden = !multi;
+    printAllBtn.disabled = !series.every((it) => it.photo);
+    printAllBtn.textContent = `Alle ${series.length} drucken`;
   }
 
-  function openViewer(item) {
-    if (current && current.localUrl && current !== item) URL.revokeObjectURL(current.localUrl);
-    current = item;
-    viewerImg.src = item.localUrl || item.photo.url;
-    $("viewerTitle").textContent = item.isNew ? "Super Foto! 🎉" : "Foto";
-    setCopies(1);
+  function renderStrip() {
+    strip.replaceChildren();
+    const multi = series.length > 1;
+    strip.hidden = !multi;
+    $("viewerImage").classList.toggle("has-strip", multi);
+    if (!multi) return;
+    series.forEach((it, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      if (it === current) b.className = "active";
+      const img = document.createElement("img");
+      img.src = it.localUrl || it.photo.thumb;
+      img.alt = `Foto ${i + 1}`;
+      b.appendChild(img);
+      b.addEventListener("click", () => { showItem(i); resetIdle(); });
+      strip.appendChild(b);
+    });
+  }
+
+  function showItem(i) {
+    current = series[i];
+    viewerImg.src = current.localUrl || current.photo.url;
+    const multi = series.length > 1;
+    $("viewerTitle").textContent = current.isNew
+      ? (multi ? `Super Fotos! 🎉 (${i + 1}/${series.length})` : "Super Foto! 🎉")
+      : "Foto";
+    renderStrip();
     updateViewerButtons();
+  }
+
+  function openViewer(items, index = 0) {
+    releaseSeries();
+    series = items;
+    setCopies(1);
+    showItem(index);
     viewer.hidden = false;
     resetIdle();
+  }
+
+  function releaseSeries() {
+    for (const it of series) if (it.localUrl && it.photo) { URL.revokeObjectURL(it.localUrl); it.localUrl = null; }
   }
 
   function closeViewer() {
     clearTimeout(idleTimer);
     viewer.hidden = true;
-    if (current && current.localUrl) URL.revokeObjectURL(current.localUrl);
+    releaseSeries();
+    series = [];
     current = null;
   }
 
-  async function uploadCurrent() {
-    const item = current;
+  async function uploadItem(item) {
     if (!item || !item.blob) return;
     item.uploadFailed = false;
-    updateViewerButtons();
+    if (series.includes(item)) updateViewerButtons();
     const form = new FormData();
     form.append("photo", item.blob, "photo.jpg");
     try {
@@ -373,35 +432,43 @@
       newestId = photo.id;
       photos.unshift(photo);
       renderThumbs();
-      if (current === item) {
-        updateViewerButtons();
-        if (settings.autoPrint) printCurrent();
-      }
+      if (series.includes(item)) updateViewerButtons();
+      if (settings.autoPrint) printItems([item], 1);
     } catch (err) {
       item.uploadFailed = true;
-      if (current === item) updateViewerButtons();
+      if (series.includes(item)) updateViewerButtons();
       toast("Foto konnte nicht gespeichert werden: " + err.message, "error", 6000);
     }
   }
 
-  async function printCurrent() {
-    if (!current || !current.photo) return;
+  async function printItems(items, n) {
+    const saved = items.filter((it) => it.photo);
+    if (!saved.length) return;
     resetIdle();
     printBtn.disabled = true;
-    try {
-      const res = await api(`/api/photos/${encodeURIComponent(current.photo.id)}/print`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ copies }),
-      });
-      toast(res.copies > 1 ? `${res.copies} Abzüge werden gedruckt 🖨️` : "Wird gedruckt 🖨️", "ok");
-      setTimeout(refreshPrinter, 1500);
-    } catch (err) {
-      toast("Drucken fehlgeschlagen: " + err.message, "error", 6000);
-    } finally {
-      // Kurze Sperre gegen versehentliches Doppel-Tippen
-      setTimeout(updateViewerButtons, 2500);
+    printAllBtn.disabled = true;
+    let ok = 0;
+    let lastError = "";
+    for (const it of saved) {
+      try {
+        await api(`/api/photos/${encodeURIComponent(it.photo.id)}/print`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ copies: n }),
+        });
+        ok++;
+      } catch (err) {
+        lastError = err.message;
+      }
     }
+    if (ok) {
+      const total = ok * n;
+      toast(total > 1 ? `${total} Abzüge werden gedruckt 🖨️` : "Wird gedruckt 🖨️", "ok");
+      setTimeout(refreshPrinter, 1500);
+    }
+    if (lastError) toast("Drucken fehlgeschlagen: " + lastError, "error", 6000);
+    // Kurze Sperre gegen versehentliches Doppel-Tippen
+    setTimeout(updateViewerButtons, 2500);
   }
 
   async function deleteCurrent() {
@@ -412,15 +479,20 @@
       const id = current.photo.id;
       photos = photos.filter((p) => p.id !== id);
       renderThumbs();
-      closeViewer();
+      const i = series.indexOf(current);
+      if (current.localUrl) URL.revokeObjectURL(current.localUrl);
+      series.splice(i, 1);
+      if (!series.length) closeViewer();
+      else showItem(Math.min(i, series.length - 1));
       toast("Foto gelöscht");
     } catch (err) {
       toast("Löschen fehlgeschlagen: " + err.message, "error");
     }
   }
 
-  printBtn.addEventListener("click", printCurrent);
-  retryUploadBtn.addEventListener("click", uploadCurrent);
+  printBtn.addEventListener("click", () => printItems([current], copies));
+  printAllBtn.addEventListener("click", () => printItems(series, copies));
+  retryUploadBtn.addEventListener("click", () => uploadItem(current));
   deleteBtn.addEventListener("click", deleteCurrent);
   $("closeViewer").addEventListener("click", closeViewer);
   $("copiesMinus").addEventListener("click", () => { setCopies(copies - 1); resetIdle(); });
@@ -449,19 +521,49 @@
 
   const settingsModal = $("settings");
   $("settingsBtn").addEventListener("click", () => {
-    $("setCountdown").value = String(settings.countdown);
     $("setMirror").checked = settings.mirror;
     $("setAutoPrint").checked = settings.autoPrint;
     settingsModal.hidden = false;
   });
   $("closeSettings").addEventListener("click", () => {
-    settings.countdown = parseInt($("setCountdown").value, 10) || 0;
     settings.mirror = $("setMirror").checked;
     settings.autoPrint = $("setAutoPrint").checked;
     saveSettings();
     video.classList.toggle("mirror", settings.mirror);
     settingsModal.hidden = true;
   });
+
+  // ---------------------------------------------------------------------
+  // Anleitung für Gäste: Timer und Anzahl Fotos
+  // ---------------------------------------------------------------------
+
+  const guide = $("guide");
+
+  function renderGuide() {
+    for (const b of $("guideTimer").children) b.classList.toggle("active", Number(b.dataset.v) === settings.countdown);
+    for (const b of $("guideBurst").children) b.classList.toggle("active", Number(b.dataset.v) === settings.burst);
+    const timer = settings.countdown ? `⏱ ${settings.countdown} s` : "⏱ aus";
+    const burst = settings.burst > 1 ? `📷 × ${settings.burst}` : "📷 × 1";
+    $("guideSummary").textContent = `${timer} · ${burst}`;
+  }
+
+  function closeGuide() {
+    guide.hidden = true;
+  }
+
+  for (const [id, key] of [["guideTimer", "countdown"], ["guideBurst", "burst"]]) {
+    $(id).addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-v]");
+      if (!b) return;
+      settings[key] = Number(b.dataset.v);
+      saveSettings();
+      renderGuide();
+    });
+  }
+  $("guideBtn").addEventListener("click", () => { renderGuide(); guide.hidden = false; });
+  $("guideClose").addEventListener("click", closeGuide);
+  guide.addEventListener("click", (e) => { if (e.target === guide) closeGuide(); });
+  renderGuide();
 
   // iOS: Pinch-Zoom verhindern (Doppeltipp-Zoom verhindert touch-action im CSS)
   document.addEventListener("gesturestart", (e) => e.preventDefault());
