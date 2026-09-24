@@ -89,6 +89,8 @@ key-mgmt=wpa-psk
 proto=rsn;
 pairwise=ccmp;
 group=ccmp;
+# PMF aus: mit PMF bricht der Hotspot auf dem Raspberry-Pi-WLAN-Chip (brcmfmac) ab
+pmf=1
 psk=$WLAN_PASSWORT
 
 [ipv4]

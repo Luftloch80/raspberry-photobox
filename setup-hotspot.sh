@@ -59,6 +59,7 @@ sudo nmcli connection add type wifi ifname "$IFACE" con-name "$CON" ssid "$SSID"
   wifi-sec.proto rsn \
   wifi-sec.pairwise ccmp \
   wifi-sec.group ccmp \
+  wifi-sec.pmf disable \
   wifi-sec.psk "$PASS" > /dev/null
 
 echo "==> WLAN-Umschalter für die Statusseite einrichten"
