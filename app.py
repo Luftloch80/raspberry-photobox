@@ -123,6 +123,16 @@ def manifest():
     )
 
 
+@app.route("/ca.crt")
+def ca_certificate():
+    """Zertifikat für HTTPS im Heimnetz (von setup-local-https.sh erzeugt)."""
+    if not (BASE_DIR / "ca.crt").exists():
+        abort(404)
+    return send_from_directory(
+        BASE_DIR, "ca.crt", mimetype="application/x-x509-ca-cert", as_attachment=True
+    )
+
+
 @app.route("/photos/<name>")
 @login_required
 def photo_file(name):

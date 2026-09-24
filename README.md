@@ -98,6 +98,30 @@ erzeugt eine zufällige `https://….trycloudflare.com`-Adresse. Sie ändert sic
 *Alternative:* [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
 (`sudo tailscale funnel 8080`) funktioniert ebenfalls und liefert eine HTTPS-Adresse.
 
+## 3b. Alternative: Nur im Heimnetz, ohne Internet
+
+Safari gibt die Kamera nur über HTTPS frei, auch im Heimnetz. Das Skript richtet
+[Caddy](https://caddyserver.com) mit einem eigenen Zertifikat ein:
+
+```bash
+./setup-local-https.sh
+```
+
+Danach einmalig auf dem iPad (in **Safari**):
+
+1. `http://<pi-adresse>:8080/ca.crt` öffnen → *Zulassen*
+2. *Einstellungen* → *Profil geladen* → *Installieren*
+3. *Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen* →
+   **Caddy Local Authority** einschalten
+4. Photobox öffnen: `https://<pi-adresse>` oder `https://<hostname>.local`
+
+Hinweise:
+- Die IP-Adresse des Pi im Router fest vergeben (DHCP-Reservierung). Ändert sie sich,
+  `./setup-local-https.sh` erneut ausführen. Das Zertifikat auf dem iPad bleibt gültig.
+- Der Pi hat keine Uhr mit Batterie. Ohne Internet stellt er die Uhrzeit nach einem
+  Neustart nicht nach. Liegt sie mehr als ein paar Tage daneben, lehnt das iPad das
+  Zertifikat ab. Dann die Zeit setzen: `sudo date -s "2026-09-24 18:00"`.
+
 ## 4. iPad mini einrichten
 
 1. In **Safari** die HTTPS-Adresse öffnen und mit der PIN anmelden.
@@ -131,4 +155,5 @@ immer HTTPS nötig.
 | `static/app.js` | Kamera, Countdown, Aufnahme, Galerie, Drucken |
 | `static/style.css` | Querformat-Layout für das iPad mini |
 | `install.sh`, `deploy/photobox.service` | Installation und systemd-Dienst für den Pi |
+| `setup-local-https.sh` | HTTPS im Heimnetz ohne Internet (Caddy) |
 | `photos/` | Gespeicherte Fotos (wird automatisch angelegt) |
