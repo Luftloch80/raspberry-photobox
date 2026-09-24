@@ -17,11 +17,15 @@
   // Einstellungen (pro Gerät gespeichert)
   // ---------------------------------------------------------------------
 
-  const defaults = { countdown: 3, burst: 1, mirror: true, autoPrint: false };
+  const defaults = { countdown: 3, mirror: true, autoPrint: false };
+  const SERIES = 4;              // immer 4 Fotos hintereinander
+  const TIMERS = [3, 5];         // wählbarer Countdown in Sekunden
   const settings = Object.assign({}, defaults, loadSettings());
   const FACING = "user"; // immer die Frontkamera (Selfie)
   delete settings.camera; // frühere Einstellungen, nicht mehr verwendet
   delete settings.clearOld;
+  delete settings.burst;
+  if (!TIMERS.includes(settings.countdown)) settings.countdown = 3;
 
   function loadSettings() {
     try { return JSON.parse(localStorage.getItem("photobox-settings")) || {}; }
@@ -239,15 +243,13 @@
     shutter.disabled = true;
     document.body.classList.add("shooting");
     requestWakeLock();
-    const total = Math.max(1, Math.min(4, settings.burst || 1));
+    const total = SERIES;
     const items = [];
     try {
       await deleteOldPhotos();
       for (let i = 0; i < total; i++) {
         if (total > 1) showShotLabel(`Foto ${i + 1} von ${total}`);
-        // Ohne Timer bei Serien kurz Zeit zum Umposieren lassen
-        const secs = settings.countdown > 0 ? settings.countdown : (i > 0 ? 2 : 0);
-        if (secs) await runCountdown(secs);
+        await runCountdown(settings.countdown);
         const blob = await grabFrame();
         flash.classList.remove("on");
         void flash.offsetWidth;
@@ -501,14 +503,13 @@
 
   function renderGuide() {
     for (const b of $("guideTimer").children) b.classList.toggle("active", Number(b.dataset.v) === settings.countdown);
-    for (const b of $("guideBurst").children) b.classList.toggle("active", Number(b.dataset.v) === settings.burst);
   }
 
   function closeGuide() {
     guide.hidden = true;
   }
 
-  for (const [id, key] of [["guideTimer", "countdown"], ["guideBurst", "burst"]]) {
+  for (const [id, key] of [["guideTimer", "countdown"]]) {
     $(id).addEventListener("click", (e) => {
       const b = e.target.closest("button[data-v]");
       if (!b) return;
