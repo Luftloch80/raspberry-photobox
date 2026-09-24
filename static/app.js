@@ -564,7 +564,14 @@
   }
   $("guideBtn").addEventListener("click", () => { renderGuide(); guide.hidden = false; });
   $("guideClose").addEventListener("click", closeGuide);
-  $("guideShutter").addEventListener("click", () => { closeGuide(); takePhoto(); });
+  $("guideShutter").addEventListener("click", () => {
+    if (shutter.disabled && !busy) {
+      toast("Die Kamera ist noch nicht bereit", "error");
+      return;
+    }
+    closeGuide();
+    takePhoto();
+  });
   guide.addEventListener("click", (e) => { if (e.target === guide) closeGuide(); });
   renderGuide();
 
