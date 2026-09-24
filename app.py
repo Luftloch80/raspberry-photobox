@@ -266,6 +266,19 @@ def wifi_mode():
     return jsonify(ok=True, mode=mode), 202
 
 
+@app.post("/api/wifi/hotspot-password")
+def hotspot_password():
+    password = str((request.get_json(silent=True) or {}).get("password", ""))
+    if not 8 <= len(password) <= 63 or not all(" " <= c <= "~" for c in password):
+        return jsonify(error="Das Passwort muss 8 bis 63 Zeichen haben (keine Umlaute)."), 400
+    if not status.wifi_switch_available():
+        return jsonify(error="Nicht eingerichtet (./setup-wifi-switch.sh)"), 503
+    ok, msg, restarted = status.set_hotspot_password(password)
+    if not ok:
+        return jsonify(error=msg), 500
+    return jsonify(ok=True, restarted=restarted)
+
+
 @app.post("/api/printers/<name>/<action>")
 def printer_action(name, action):
     if action not in ("resume", "cancel") or not re.fullmatch(r"[\w.@-]+", name):

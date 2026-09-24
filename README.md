@@ -123,6 +123,9 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
   in der WLAN-Karte, oder per SSH mit `./hotspot.sh on`, `./hotspot.sh off`, `./hotspot.sh status`.
   Findet der Pi beim Wechsel kein bekanntes WLAN, schaltet er automatisch zurück auf den Hotspot.
   Im normalen WLAN ist die Photobox unter `https://<hostname>.local` erreichbar.
+- Name und Passwort des Hotspots stehen auf der Statusseite (Passwort per „Anzeigen“).
+  Dort lässt sich das Passwort auch ändern; beim Image wird es zusätzlich in `photobox.txt`
+  gespeichert.
   Ist der Pi per WLAN mit SSH verbunden, bricht die Verbindung bei `on` ab.
 - Das iPad meldet im Hotspot „Keine Internetverbindung“. Das ist normal, die Photobox
   funktioniert trotzdem.

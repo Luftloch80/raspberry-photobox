@@ -62,6 +62,21 @@
     </div>
   </div>
 
+  <div class="modal" id="pwModal" hidden>
+    <div class="panel">
+      <h2>Hotspot-Passwort ändern</h2>
+      <label>Neues Passwort
+        <input type="text" id="pwInput" autocomplete="off" autocapitalize="off" spellcheck="false" minlength="8" maxlength="63">
+      </label>
+      <p class="error" id="pwError" hidden></p>
+      <p class="muted" id="pwNote"></p>
+      <div class="panel-actions">
+        <button class="btn" id="pwCancel" type="button">Abbrechen</button>
+        <button class="btn primary" id="pwSave" type="button">Speichern</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" hidden></div>
   <script src="{{ url_for('static', filename='status.js', v=v) }}"></script>
 </body>

@@ -4,6 +4,8 @@
 #   photobox-wifi hotspot   Hotspot einschalten
 #   photobox-wifi client    mit einem bekannten WLAN verbinden; klappt das nicht,
 #                           wird der Hotspot wieder eingeschaltet
+#   photobox-wifi credentials        Name und Passwort des Hotspots ausgeben (2 Zeilen)
+#   photobox-wifi set-password       neues Hotspot-Passwort von stdin setzen
 #
 # Die Photobox ruft das Skript per "sudo -n" auf (siehe /etc/sudoers.d/photobox-wifi).
 set -u
@@ -93,8 +95,40 @@ case "${1:-}" in
     exit 2
     ;;
 
+  credentials)
+    nmcli -g 802-11-wireless.ssid connection show "$CON" || exit 1
+    nmcli -s -g 802-11-wireless-security.psk connection show "$CON"
+    ;;
+
+  set-password)
+    IFS= read -r pw || true
+    pw="${pw%$'\r'}"
+    if [ ${#pw} -lt 8 ] || [ ${#pw} -gt 63 ] || [[ "$pw" =~ [^[:print:]] ]]; then
+      echo "Das Passwort muss 8 bis 63 normale Zeichen haben." >&2
+      exit 1
+    fi
+    if ! nm connection modify "$CON" wifi-sec.psk "$pw"; then
+      echo "Passwort konnte nicht gesetzt werden." >&2
+      exit 1
+    fi
+    # Beim Image steht das Passwort auch in photobox.txt (wird bei jedem Start übernommen)
+    CONF=/boot/firmware/photobox.txt
+    if [ -f "$CONF" ] && grep -q '^WLAN_PASSWORT=' "$CONF"; then
+      PW="$pw" awk '{ if ($0 ~ /^WLAN_PASSWORT=/) { cr = ($0 ~ /\r$/) ? "\r" : ""; print "WLAN_PASSWORT=" ENVIRON["PW"] cr } else print }' \
+        "$CONF" > "$CONF.tmp" && cat "$CONF.tmp" > "$CONF" && rm -f "$CONF.tmp"
+    fi
+    log "Hotspot-Passwort geändert"
+    # Läuft der Hotspot gerade, neu starten, damit das Passwort gilt. Im Hintergrund,
+    # damit die Photobox vorher noch antworten kann.
+    if [ "$(current_wifi)" = "$CON" ]; then
+      echo "restart"
+      ( sleep 3; nm --wait 30 connection up "$CON" ) > /dev/null 2>&1 &
+      disown
+    fi
+    ;;
+
   *)
-    echo "Aufruf: $0 hotspot | client" >&2
+    echo "Aufruf: $0 hotspot | client | credentials | set-password" >&2
     exit 1
     ;;
 esac

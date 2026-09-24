@@ -117,6 +117,8 @@ def wifi_status():
 
     info["known"] = known_networks()
     info["hotspot_ssid"] = hotspot_ssid()
+    creds = hotspot_credentials() if info["hotspot_ssid"] is not None else None
+    info["hotspot_password"] = creds["password"] if creds else None
     try:
         # Neueste Meldung zuerst (siehe deploy/photobox-wifi)
         info["switch_log"] = Path(os.environ.get("PHOTOBOX_WIFI_LOG", "/run/photobox-wifi.log")).read_text().splitlines()[:6]
@@ -181,6 +183,29 @@ def hotspot_ssid():
     """WLAN-Name des Photobox-Hotspots, oder None wenn keiner eingerichtet ist."""
     out = run(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", HOTSPOT_CON])
     return out.strip().replace("\\:", ":") if out is not None else None
+
+
+def hotspot_credentials():
+    """Name und Passwort des Hotspots (Passwort lesen darf nur root → Hilfsskript)."""
+    if not os.path.exists(WIFI_HELPER):
+        return None
+    out = run(["sudo", "-n", WIFI_HELPER, "credentials"])
+    if out is None:
+        return None
+    lines = out.splitlines() + ["", ""]
+    return {"ssid": lines[0].replace("\\:", ":"), "password": lines[1]}
+
+
+def set_hotspot_password(password):
+    """Neues Hotspot-Passwort setzen. Gibt (ok, Meldung, Hotspot-neu-gestartet) zurück."""
+    try:
+        res = subprocess.run(["sudo", "-n", WIFI_HELPER, "set-password"], input=password + "\n",
+                             capture_output=True, text=True, timeout=30, env=ENV)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False, "Passwort konnte nicht gesetzt werden", False
+    if res.returncode != 0:
+        return False, (res.stderr or res.stdout).strip() or "Passwort konnte nicht gesetzt werden", False
+    return True, "", "restart" in res.stdout
 
 
 def hotspot_configured():

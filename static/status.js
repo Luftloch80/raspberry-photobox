@@ -82,8 +82,9 @@
     }
     box.append(head);
     box.append(renderSwitch(w));
+    if (w.hotspot_ssid != null) box.append(renderHotspotAccess(w));
 
-    if (w.ssid) box.append(row("WLAN-Name", w.ssid, "strong"));
+    if (w.ssid && w.mode !== "hotspot") box.append(row("WLAN-Name", w.ssid, "strong"));
     if (w.channel) box.append(row("Kanal", w.channel));
     if (w.mode === "client" && w.signal != null) {
       const r = row("Signal", `${w.signal} %`);
@@ -149,6 +150,84 @@
       wrap.append(details);
     }
     return wrap;
+  }
+
+  // ---------------------------------------------------------------------
+  // Hotspot-Zugang (Name + Passwort anzeigen/ändern)
+  // ---------------------------------------------------------------------
+
+  let showPassword = false;
+
+  function renderHotspotAccess(w) {
+    const wrap = el("div", "hotspot-access");
+    wrap.append(el("h3", "", "Hotspot-Zugang"));
+    wrap.append(row("Name", w.hotspot_ssid, "strong"));
+
+    const pwRow = row("Passwort", "");
+    const value = pwRow.querySelector(".value");
+    if (w.hotspot_password == null) {
+      value.textContent = "nicht lesbar";
+      value.classList.add("muted");
+    } else {
+      value.append(el("code", "password", showPassword ? w.hotspot_password : "••••••••"));
+      const toggle = el("button", "btn small", showPassword ? "Verbergen" : "Anzeigen");
+      toggle.type = "button";
+      toggle.onclick = () => { showPassword = !showPassword; renderWifi(lastStatus.wifi); };
+      value.append(toggle);
+    }
+    wrap.append(pwRow);
+
+    if (w.switch_available) {
+      const change = el("button", "btn small", "Passwort ändern");
+      change.type = "button";
+      change.onclick = () => askPassword(w);
+      const actions = el("div", "actions");
+      actions.append(change);
+      wrap.append(actions);
+    }
+    return wrap;
+  }
+
+  function askPassword(w) {
+    const input = $("pwInput");
+    input.value = "";
+    $("pwError").hidden = true;
+    $("pwNote").textContent = w.mode === "hotspot"
+      ? "Der Hotspot startet danach neu. Alle Geräte – auch dieses iPad – werden kurz getrennt und müssen sich mit dem neuen Passwort wieder verbinden."
+      : "Das neue Passwort gilt beim nächsten Einschalten des Hotspots.";
+    $("pwModal").hidden = false;
+    setTimeout(() => input.focus(), 50);
+  }
+
+  async function savePassword() {
+    const pw = $("pwInput").value;
+    const err = $("pwError");
+    if (pw.length < 8 || pw.length > 63 || /[^\x20-\x7e]/.test(pw)) {
+      err.textContent = "8 bis 63 Zeichen, keine Umlaute.";
+      err.hidden = false;
+      return;
+    }
+    $("pwSave").disabled = true;
+    try {
+      const res = await fetch("/api/wifi/hotspot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Fehler ${res.status}`);
+      $("pwModal").hidden = true;
+      showPassword = true;
+      toast(data.restarted
+        ? "Passwort geändert – Hotspot startet neu, gleich mit dem neuen Passwort verbinden"
+        : "Passwort geändert", "ok");
+      refresh();
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    } finally {
+      $("pwSave").disabled = false;
+    }
   }
 
   function askSwitch(mode) {
@@ -357,6 +436,10 @@
   }
 
   $("switchCancel").onclick = () => { $("switchModal").hidden = true; };
+  $("pwCancel").onclick = () => { $("pwModal").hidden = true; };
+  $("pwSave").onclick = savePassword;
+  $("pwInput").addEventListener("keydown", (e) => { if (e.key === "Enter") savePassword(); });
+  $("pwInput").addEventListener("input", () => { $("pwError").hidden = true; });
 
   refresh();
   setInterval(() => { if (document.visibilityState === "visible") refresh(); }, REFRESH_MS);

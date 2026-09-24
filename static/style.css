@@ -485,3 +485,9 @@ html.scrollable, html.scrollable body { height: auto; min-height: 100%; overflow
 .switch-log { font-size: 13px; color: var(--muted); }
 .switch-log summary { cursor: pointer; }
 .switch-log pre { white-space: pre-wrap; margin: 6px 0 0; font-size: 12px; background: var(--panel-2); padding: 8px 10px; border-radius: 8px; }
+.hotspot-access { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.hotspot-access h3 { margin-top: 8px; }
+.password { font-family: ui-monospace, Menlo, monospace; font-size: 15px; -webkit-user-select: all; user-select: all; }
+.row .value.muted { color: var(--muted); }
+.panel .error { color: #ff7b8f; margin: 0; font-size: 14px; }
+.panel .muted { color: var(--muted); margin: 0; font-size: 14px; line-height: 1.5; }
