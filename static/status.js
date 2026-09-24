@@ -396,8 +396,7 @@
   function renderSystem(s) {
     const box = $("system");
     box.replaceChildren();
-    box.append(row("Fotos in der Galerie", String(s.photos), "strong"));
-    if (s.archived != null) box.append(row("Fotos im Archiv", String(s.archived)));
+    box.append(row("Fotos", String(s.photos), "strong"));
     if (s.disk_free != null) {
       const pct = Math.round((1 - s.disk_free / s.disk_total) * 100);
       const r = row("Speicher", `${gb(s.disk_free)} frei von ${gb(s.disk_total)}`, s.disk_free < 1e9 ? "warn" : "");

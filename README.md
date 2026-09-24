@@ -20,8 +20,7 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Knopf **„So geht's“** oben in der Mitte für Gäste: kurze Anleitung, Timer (aus / 3 / 5 / 10 s)
   und **Serien von 1–4 Fotos** hintereinander (Countdown vor jedem Foto)
 - Serien werden zusammen angezeigt: einzeln oder **alle drucken**
-- Beginnt eine neue Serie, verschwinden die Fotos der vorherigen Gäste aus der Galerie. Sie
-  bleiben auf dem Pi im Archiv (`photos/archiv/<Datum>/`); abschaltbar im ⚙️-Menü.
+- Beginnt eine neue Serie, werden die Fotos der vorherigen Gäste **endgültig gelöscht**
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei

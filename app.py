@@ -27,7 +27,6 @@ import status
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_DIR = Path(os.environ.get("PHOTOBOX_PHOTO_DIR", BASE_DIR / "photos"))
 THUMB_DIR = PHOTO_DIR / "thumbs"
-ARCHIVE_DIR = PHOTO_DIR / "archiv"  # Fotos früherer Serien (nicht mehr in der Galerie)
 PHOTO_DIR.mkdir(parents=True, exist_ok=True)
 THUMB_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -163,26 +162,20 @@ def delete_photo(name):
     return jsonify(ok=True)
 
 
-@app.post("/api/photos/archive")
-def archive_photos():
-    """Fotos aus der Galerie ins Archiv verschieben (z. B. wenn eine neue Serie beginnt).
-
-    Die Dateien bleiben auf dem Pi erhalten: photos/archiv/<Datum>/
-    """
+@app.post("/api/photos/clear")
+def clear_photos():
+    """Fotos der vorherigen Gäste endgültig löschen (wenn eine neue Serie beginnt)."""
     ids = (request.get_json(silent=True) or {}).get("ids", [])
-    moved = 0
+    deleted = 0
     for name in ids if isinstance(ids, list) else []:
         if not isinstance(name, str) or not PHOTO_NAME.match(name):
             continue
-        src = PHOTO_DIR / name
-        if not src.exists():
-            continue
-        dest = ARCHIVE_DIR / f"{name[:4]}-{name[4:6]}-{name[6:8]}"
-        dest.mkdir(parents=True, exist_ok=True)
-        src.replace(dest / name)
+        path = PHOTO_DIR / name
+        if path.exists():
+            path.unlink()
+            deleted += 1
         (THUMB_DIR / name).unlink(missing_ok=True)
-        moved += 1
-    return jsonify(ok=True, archived=moved)
+    return jsonify(ok=True, deleted=deleted)
 
 
 # --------------------------------------------------------------------------
@@ -266,7 +259,6 @@ def status_api():
     photos = [p for p in PHOTO_DIR.glob("*.jpg") if PHOTO_NAME.match(p.name)]
     system = status.system_status(PHOTO_DIR)
     system["photos"] = len(photos)
-    system["archived"] = sum(1 for p in ARCHIVE_DIR.rglob("*.jpg")) if ARCHIVE_DIR.exists() else 0
     system["time"] = datetime.now().isoformat(timespec="seconds")
     return jsonify(
         wifi=status.wifi_status(),
