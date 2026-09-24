@@ -191,7 +191,6 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   cursor: pointer;
   position: relative;
 }
-.thumbs button.new { outline: 3px solid var(--accent); }
 .thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumbs .empty { color: var(--muted); text-align: center; padding: 24px 8px; font-size: 14px; }
 

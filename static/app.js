@@ -308,7 +308,6 @@
   // ---------------------------------------------------------------------
 
   let photos = [];
-  let newestId = null;
 
   async function loadPhotos() {
     try {
@@ -323,7 +322,6 @@
     thumbs.innerHTML = "";
     for (const p of photos) {
       const btn = document.createElement("button");
-      if (p.id === newestId) btn.className = "new";
       const img = document.createElement("img");
       img.src = p.thumb;
       img.loading = "lazy";
@@ -453,7 +451,6 @@
         deletePhotos([photo.id]);
         return;
       }
-      newestId = photo.id;
       photos.unshift(photo);
       renderThumbs();
       if (series.includes(item)) updateViewerButtons();

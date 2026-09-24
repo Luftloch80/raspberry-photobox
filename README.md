@@ -26,7 +26,7 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei
   Webseiten an – beim „AB Shutter3“ den kleinen Android-Knopf (Enter) verwenden.
-- Galerie mit allen Fotos, neues Foto wird hervorgehoben
+- Galerie mit allen Fotos
 - Großansicht mit **Drucken**-Button und Anzahl der Abzüge
 - Optional: automatisch nach jeder Aufnahme drucken
 - Druckerstatus auf der Statusseite (⚙️ → „WLAN- & Druckerstatus“)
