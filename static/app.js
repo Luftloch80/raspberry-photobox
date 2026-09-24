@@ -20,8 +20,10 @@
   // Einstellungen (pro Gerät gespeichert)
   // ---------------------------------------------------------------------
 
-  const defaults = { camera: "user", countdown: 3, mirror: true, autoPrint: false };
+  const defaults = { countdown: 3, mirror: true, autoPrint: false };
   const settings = Object.assign({}, defaults, loadSettings());
+  const FACING = "user"; // immer die Frontkamera (Selfie)
+  delete settings.camera; // frühere Kamera-Auswahl nicht mehr verwendet
 
   function loadSettings() {
     try { return JSON.parse(localStorage.getItem("photobox-settings")) || {}; }
@@ -69,8 +71,8 @@
 
   function requestStream() {
     const tries = [
-      { audio: false, video: { facingMode: settings.camera, width: { ideal: 1920 }, height: { ideal: 1440 } } },
-      { audio: false, video: { facingMode: settings.camera } },
+      { audio: false, video: { facingMode: FACING, width: { ideal: 1920 }, height: { ideal: 1440 } } },
+      { audio: false, video: { facingMode: FACING } },
       { audio: false, video: true },
     ];
     // Nacheinander probieren; abgelehnte Berechtigung sofort weitergeben
@@ -447,22 +449,18 @@
 
   const settingsModal = $("settings");
   $("settingsBtn").addEventListener("click", () => {
-    $("setCamera").value = settings.camera;
     $("setCountdown").value = String(settings.countdown);
     $("setMirror").checked = settings.mirror;
     $("setAutoPrint").checked = settings.autoPrint;
     settingsModal.hidden = false;
   });
   $("closeSettings").addEventListener("click", () => {
-    const cameraChanged = $("setCamera").value !== settings.camera;
-    settings.camera = $("setCamera").value;
     settings.countdown = parseInt($("setCountdown").value, 10) || 0;
     settings.mirror = $("setMirror").checked;
     settings.autoPrint = $("setAutoPrint").checked;
     saveSettings();
     video.classList.toggle("mirror", settings.mirror);
     settingsModal.hidden = true;
-    if (cameraChanged) startCamera();
   });
 
   // iOS: Pinch-Zoom verhindern (Doppeltipp-Zoom verhindert touch-action im CSS)
