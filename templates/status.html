@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de" class="scrollable">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f0f14">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-180.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=v) }}">
+  <title>Photobox – Status</title>
+</head>
+<body class="status-page">
+  <header class="status-header">
+    <a class="btn small" href="{{ url_for('index') }}">← Photobox</a>
+    <h1>Status</h1>
+    <span class="updated" id="updated">wird geladen …</span>
+  </header>
+
+  <main class="status-grid">
+    <section class="card" id="wifiCard">
+      <h2>
+        <svg viewBox="0 0 24 24"><path d="M12 21 1 9.5a15.5 15.5 0 0 1 22 0L12 21Z" opacity=".25"/><path d="M12 21 5.1 13.8a9.8 9.8 0 0 1 13.8 0L12 21Z"/></svg>
+        WLAN
+      </h2>
+      <div class="card-body" id="wifi"></div>
+    </section>
+
+    <section class="card" id="printerCard">
+      <h2>
+        <svg viewBox="0 0 24 24"><path d="M6 9V3h12v6h1a3 3 0 0 1 3 3v6h-4v3H6v-3H2v-6a3 3 0 0 1 3-3h1Zm2 0h8V5H8v4Zm0 6v4h8v-4H8Z"/></svg>
+        Drucker
+      </h2>
+      <div class="card-body" id="printer"></div>
+    </section>
+
+    <section class="card">
+      <h2>
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v2H4V5Zm0 6h16v2H4v-2Zm0 6h10v2H4v-2Z"/></svg>
+        Warteschlange
+      </h2>
+      <div class="card-body" id="jobs"></div>
+    </section>
+
+    <section class="card">
+      <h2>
+        <svg viewBox="0 0 24 24"><path d="M9 2h6v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3V2Zm-3 6v12h12V8H6Zm2 2h8v2H8v-2Zm0 4h5v2H8v-2Z"/></svg>
+        System
+      </h2>
+      <div class="card-body" id="system"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="{{ url_for('static', filename='status.js', v=v) }}"></script>
+</body>
+</html>

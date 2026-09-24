@@ -8,3 +8,4 @@ caddy
 avahi-daemon
 openssl
 rfkill
+iw

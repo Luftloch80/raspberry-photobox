@@ -27,6 +27,8 @@ from flask import (
 from flask.sessions import SecureCookieSessionInterface
 from PIL import Image, ImageOps
 
+import status
+
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_DIR = Path(os.environ.get("PHOTOBOX_PHOTO_DIR", BASE_DIR / "photos"))
 THUMB_DIR = PHOTO_DIR / "thumbs"
@@ -68,7 +70,7 @@ app.session_interface = SessionInterface()
 def asset_version():
     """Versionsnummer für CSS/JS, damit Safari nach einem Update nichts Altes aus dem Cache nimmt."""
     static = Path(app.static_folder)
-    return {"v": int(max((static / f).stat().st_mtime for f in ("app.js", "style.css")))}
+    return {"v": int(max((static / f).stat().st_mtime for f in ("app.js", "status.js", "style.css")))}
 
 
 # --------------------------------------------------------------------------
@@ -294,6 +296,41 @@ def printer_status():
     if "now printing" in out:
         state = "druckt gerade"
     return jsonify(ok=ok, status=f"{name}: {state}")
+
+
+# --------------------------------------------------------------------------
+# Statusseite (WLAN, Drucker, System)
+# --------------------------------------------------------------------------
+
+@app.route("/status")
+@login_required
+def status_page():
+    return render_template("status.html")
+
+
+@app.get("/api/status")
+@login_required
+def status_api():
+    photos = [p for p in PHOTO_DIR.glob("*.jpg") if PHOTO_NAME.match(p.name)]
+    system = status.system_status(PHOTO_DIR)
+    system["photos"] = len(photos)
+    system["time"] = datetime.now().isoformat(timespec="seconds")
+    return jsonify(
+        wifi=status.wifi_status(),
+        printer=status.printer_status(PRINTER),
+        system=system,
+    )
+
+
+@app.post("/api/printers/<name>/<action>")
+@login_required
+def printer_action(name, action):
+    if action not in ("resume", "cancel") or not re.fullmatch(r"[\w.@-]+", name):
+        abort(404)
+    ok, msg = status.printer_action(action, name)
+    if not ok:
+        return jsonify(error=msg), 500
+    return jsonify(ok=True)
 
 
 if __name__ == "__main__":

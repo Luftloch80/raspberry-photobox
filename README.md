@@ -22,6 +22,8 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Großansicht mit **Drucken**-Button und Anzahl der Abzüge
 - Optional: automatisch nach jeder Aufnahme drucken
 - Druckerstatus-Anzeige
+- **Statusseite** (`/status`): WLAN/Hotspot mit verbundenen Geräten, Drucker mit Fehlern
+  wie „Papier leer“, Warteschlange (abbrechen/fortsetzen), Temperatur und Speicherplatz
 - PIN-Schutz, damit nur Berechtigte im WLAN die Photobox bedienen
 - Als App zum Home-Bildschirm hinzufügbar (Vollbild, ohne Safari-Leisten)
 - Bildschirm bleibt an (Wake Lock), Hinweis bei Hochformat
@@ -149,6 +151,7 @@ immer HTTPS nötig.
 | Datei | Inhalt |
 |---|---|
 | `app.py` | Flask-Server: Anmeldung, Foto-Upload/Galerie, Drucken über `lp` |
+| `status.py`, `templates/status.html`, `static/status.js` | Statusseite für WLAN, Drucker und System |
 | `templates/` | HTML für Dashboard und Anmeldung |
 | `static/app.js` | Kamera, Countdown, Aufnahme, Galerie, Drucken |
 | `static/style.css` | Querformat-Layout für das iPad mini |

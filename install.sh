@@ -10,7 +10,7 @@ if ! sudo apt-get update; then
   echo "!!  'apt-get update' meldet Fehler (meist eine kaputte Paketquelle in /etc/apt/sources.list.d/)."
   echo "    Installation wird trotzdem fortgesetzt …"
 fi
-sudo apt-get install -y python3-venv python3-pip cups printer-driver-gutenprint libjpeg-dev zlib1g-dev
+sudo apt-get install -y python3-venv python3-pip cups printer-driver-gutenprint libjpeg-dev zlib1g-dev iw
 sudo usermod -aG lpadmin "$USER_NAME"
 # CUPS-Weboberfläche auch im Heimnetz erreichbar machen (http://<pi-adresse>:631)
 sudo cupsctl --remote-admin --remote-any --share-printers

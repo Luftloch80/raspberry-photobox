@@ -36,7 +36,7 @@
     <aside class="gallery">
       <header>
         <h1>Fotos <small id="photoCount"></small></h1>
-        <div class="printer" id="printerStatus"><i></i><span>Drucker …</span></div>
+        <a class="printer" id="printerStatus" href="{{ url_for('status_page') }}"><i></i><span>Drucker …</span></a>
       </header>
       <div class="thumbs" id="thumbs"></div>
     </aside>
@@ -87,6 +87,7 @@
       <label class="check"><input type="checkbox" id="setAutoPrint"> Nach der Aufnahme automatisch drucken</label>
       <div class="panel-actions">
         <a class="btn small" href="{{ url_for('logout') }}">Abmelden</a>
+        <a class="btn small" href="{{ url_for('status_page') }}">WLAN- &amp; Druckerstatus</a>
         <button class="btn primary" id="closeSettings">Fertig</button>
       </div>
     </div>
