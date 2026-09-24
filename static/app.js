@@ -80,30 +80,66 @@
     }
 
     if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: settings.camera,
-          width: { ideal: 1920 },
-          height: { ideal: 1440 },
-        },
-      });
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: settings.camera,
+            width: { ideal: 1920 },
+            height: { ideal: 1440 },
+          },
+        });
+      } catch (err) {
+        if (err && (err.name === "NotAllowedError" || err.name === "SecurityError")) throw err;
+        // Manche Geräte mögen die Auflösungswünsche nicht – ohne Vorgaben erneut versuchen
+        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: settings.camera } })
+          .catch(() => navigator.mediaDevices.getUserMedia({ audio: false, video: true }));
+      }
       video.srcObject = stream;
-      await video.play().catch(() => {});
       video.classList.toggle("mirror", settings.mirror);
-      hint.hidden = true;
-      shutter.disabled = false;
+      await playVideo();
     } catch (err) {
       console.error(err);
-      hintText.textContent = err && err.name === "NotAllowedError"
-        ? "Kamerazugriff wurde verweigert. Bitte in Safari erlauben (aA-Menü → Website-Einstellungen → Kamera)."
-        : "Kamera konnte nicht gestartet werden: " + (err.message || err);
+      const name = err && err.name;
+      hintText.textContent = name === "NotAllowedError"
+        ? "Kamerazugriff wurde verweigert. Bitte erlauben: aA in der Adressleiste → Website-Einstellungen → Kamera → Erlauben. Danach neu laden."
+        : name === "NotReadableError"
+          ? "Die Kamera wird gerade von einer anderen App benutzt. Bitte andere Apps schließen."
+          : "Kamera konnte nicht gestartet werden: " + ((err && (name ? name + " – " : "") + err.message) || err);
+      retry.textContent = "Erneut versuchen";
+      retry.onclick = startCamera;
       retry.hidden = false;
     }
   }
 
-  $("cameraRetry").addEventListener("click", startCamera);
+  // Video abspielen; blockiert Safari den automatischen Start, per Tippen starten
+  async function playVideo() {
+    const hint = $("cameraHint");
+    const retry = $("cameraRetry");
+    try {
+      await video.play();
+    } catch (err) {
+      $("cameraHintText").textContent = "Zum Starten der Kamera tippen";
+      retry.textContent = "Kamera starten";
+      retry.onclick = () => playVideo();
+      retry.hidden = false;
+      return;
+    }
+    // Warten, bis tatsächlich Bilder ankommen
+    for (let i = 0; i < 50 && !video.videoWidth; i++) await sleep(100);
+    if (!video.videoWidth) {
+      $("cameraHintText").textContent = "Die Kamera liefert kein Bild.";
+      retry.textContent = "Erneut versuchen";
+      retry.onclick = startCamera;
+      retry.hidden = false;
+      return;
+    }
+    hint.hidden = true;
+    shutter.disabled = false;
+  }
+
 
   // Beim Zurückkehren in den Tab (z. B. nach Sperrbildschirm) Kamera neu starten
   document.addEventListener("visibilitychange", () => {

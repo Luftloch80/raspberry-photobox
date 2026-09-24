@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#0f0f14">
   <link rel="manifest" href="{{ url_for('manifest') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-180.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=v) }}">
   <title>Photobox</title>
 </head>
 <body>
@@ -100,6 +100,6 @@
   <div class="toast" id="toast" hidden></div>
 
   <script>window.PHOTOBOX = { maxCopies: {{ max_copies }} };</script>
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v=v) }}"></script>
 </body>
 </html>

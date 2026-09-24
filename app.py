@@ -64,6 +64,13 @@ class SessionInterface(SecureCookieSessionInterface):
 app.session_interface = SessionInterface()
 
 
+@app.context_processor
+def asset_version():
+    """Versionsnummer für CSS/JS, damit Safari nach einem Update nichts Altes aus dem Cache nimmt."""
+    static = Path(app.static_folder)
+    return {"v": int(max((static / f).stat().st_mtime for f in ("app.js", "style.css")))}
+
+
 # --------------------------------------------------------------------------
 # Anmeldung
 # --------------------------------------------------------------------------
