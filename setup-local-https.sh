@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Richtet HTTPS im Heimnetz bzw. im Photobox-Hotspot ein (ohne Internet/Cloudflare).
+# Richtet HTTPS im Heimnetz bzw. im Photobox-Hotspot ein.
 #
 # Caddy nimmt HTTPS-Verbindungen an und leitet sie an die Photobox weiter.
 # Das Zertifikat stellt dieses Skript selbst aus (gültig ~2 Jahre), damit es auch

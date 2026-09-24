@@ -39,8 +39,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now photobox
 
 echo
+echo "==> HTTPS im lokalen Netz einrichten"
+"$DIR/setup-local-https.sh"
+
 IP="$(hostname -I | awk '{print $1}')"
-echo "Fertig! Die Photobox läuft auf http://$IP:8080"
+echo
+echo "Fertig! Die Photobox läuft auf https://$IP"
 echo "Nächste Schritte (siehe README.md):"
-echo "  1. Drucker in CUPS einrichten:  http://$IP:631"
-echo "  2. Cloudflare Tunnel einrichten, damit die Photobox per HTTPS aus dem Internet erreichbar ist"
+echo "  1. Drucker in CUPS einrichten:  https://$IP:631"
+echo "  2. Optional eigenen WLAN-Hotspot einrichten:  ./setup-hotspot.sh"

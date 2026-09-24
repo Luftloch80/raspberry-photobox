@@ -4,14 +4,13 @@ Eine Web-Photobox für das **iPad mini im Querformat**. Das iPad zeigt das Live-
 seiner Kamera, macht per Knopfdruck (mit Countdown) Fotos, zeigt alle Fotos in einer
 Galerie an und schickt sie **auf Knopfdruck an den Drucker**.
 
-Ein **Raspberry Pi** speichert die Fotos und druckt sie über CUPS. Per
-**Cloudflare Tunnel** ist die Photobox über das Internet mit HTTPS erreichbar.
-Das iPad braucht also nicht im selben WLAN zu sein, und es muss kein Port am
-Router freigegeben werden.
+Ein **Raspberry Pi** speichert die Fotos und druckt sie über CUPS. Alles läuft
+**nur im lokalen Netz**: im Heimnetz oder im eigenen WLAN-Hotspot des Pi. Es wird
+kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 
 ```
- iPad mini (Safari)  ──HTTPS──▶  Cloudflare  ──Tunnel──▶  Raspberry Pi  ──USB/WLAN──▶  Drucker
-   Kamera + Dashboard                                     Flask-Server + CUPS
+ iPad mini (Safari)  ──HTTPS, lokales WLAN──▶  Raspberry Pi  ──USB──▶  Drucker
+   Kamera + Dashboard                          Caddy + Flask-Server + CUPS
 ```
 
 ## Funktionen
@@ -23,7 +22,7 @@ Router freigegeben werden.
 - Großansicht mit **Drucken**-Button und Anzahl der Abzüge
 - Optional: automatisch nach jeder Aufnahme drucken
 - Druckerstatus-Anzeige
-- PIN-Schutz, weil die Photobox im Internet erreichbar ist
+- PIN-Schutz, damit nur Berechtigte im WLAN die Photobox bedienen
 - Als App zum Home-Bildschirm hinzufügbar (Vollbild, ohne Safari-Leisten)
 - Bildschirm bleibt an (Wake Lock), Hinweis bei Hochformat
 
@@ -62,8 +61,8 @@ cd raspberry-photobox
 ./install.sh
 ```
 
-Das Skript installiert CUPS und die Python-Abhängigkeiten, legt eine `.env` mit
-zufälliger **PIN** an (wird am Ende angezeigt) und startet den Dienst `photobox`.
+Das Skript installiert CUPS, Caddy und die Python-Abhängigkeiten, legt eine `.env` mit
+zufälliger **PIN** an (wird am Ende angezeigt), richtet HTTPS ein und startet den Dienst `photobox`.
 Einstellungen (PIN, Drucker, Druckoptionen) stehen in `.env`, siehe `.env.example`.
 Nach Änderungen: `sudo systemctl restart photobox`.
 
@@ -82,73 +81,27 @@ Tipps:
   Für 10×15-Fotos: `PHOTOBOX_PRINT_OPTIONS=fit-to-page media=Postcard`
 - Mögliche Optionen eines Druckers anzeigen: `lpoptions -p <DRUCKER> -l`
 
-## 3. Über das Internet erreichbar machen (Cloudflare Tunnel)
+## 3. HTTPS im lokalen Netz
 
-Safari erlaubt den Kamerazugriff **nur über HTTPS**. Ein Cloudflare Tunnel liefert
-HTTPS mit gültigem Zertifikat und braucht keine Portfreigabe am Router.
-
-Voraussetzung: eine eigene Domain, die bei Cloudflare verwaltet wird (kostenloser Plan reicht).
-
-```bash
-# cloudflared installieren (64-bit Raspberry Pi OS)
-curl -L -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
-sudo dpkg -i cloudflared.deb
-
-cloudflared tunnel login                     # öffnet einen Link zur Anmeldung bei Cloudflare
-cloudflared tunnel create photobox
-cloudflared tunnel route dns photobox photobox.deine-domain.de
-```
-
-`~/.cloudflared/config.yml` anlegen:
-
-```yaml
-tunnel: photobox
-credentials-file: /home/pi/.cloudflared/<TUNNEL-ID>.json
-ingress:
-  - hostname: photobox.deine-domain.de
-    service: http://localhost:8080
-  - service: http_status:404
-```
-
-Als Dienst starten:
-
-```bash
-sudo cloudflared --config /home/pi/.cloudflared/config.yml service install
-sudo systemctl enable --now cloudflared
-```
-
-Die Photobox ist jetzt unter **https://photobox.deine-domain.de** erreichbar.
-
-**Ohne eigene Domain, nur zum Ausprobieren:** `cloudflared tunnel --url http://localhost:8080`
-erzeugt eine zufällige `https://….trycloudflare.com`-Adresse. Sie ändert sich bei jedem Start.
-
-*Alternative:* [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
-(`sudo tailscale funnel 8080`) funktioniert ebenfalls und liefert eine HTTPS-Adresse.
-
-## 3b. Alternative: Nur im Heimnetz, ohne Internet
-
-Safari gibt die Kamera nur über HTTPS frei, auch im Heimnetz. Das Skript richtet
-[Caddy](https://caddyserver.com) mit einem eigenen Zertifikat ein:
-
-```bash
-./setup-local-https.sh
-```
+Safari gibt die Kamera nur über HTTPS frei, auch im lokalen Netz. `install.sh` richtet
+dafür [Caddy](https://caddyserver.com) mit einem eigenen Zertifikat ein (erneut
+ausführen mit `./setup-local-https.sh`).
 
 Danach einmalig auf dem iPad (in **Safari**):
 
 1. `http://<pi-adresse>:8080/ca.crt` öffnen → *Zulassen*
 2. *Einstellungen* → *Profil geladen* → *Installieren*
 3. *Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen* →
-   **Caddy Local Authority** einschalten
+   die Photobox-Zertifizierungsstelle einschalten
 4. Photobox öffnen: `https://<pi-adresse>` oder `https://<hostname>.local`
 
 Hinweise:
-- Das Zertifikat ist 800 Tage gültig. Eine falsch gehende Uhr des Pi (ohne Internet)
-  stört deshalb nicht. Danach `./setup-local-https.sh` erneut ausführen.
+- Das Zertifikat ist 800 Tage gültig. Eine falsch gehende Uhr des Pi (er hat keine
+  Uhr mit Batterie) stört deshalb nicht. Danach `./setup-local-https.sh` erneut ausführen.
 - Ändert sich die IP-Adresse des Pi, `./setup-local-https.sh` erneut ausführen. Das
   iPad muss dafür nichts neu installieren.
 
-## 3c. Eigener WLAN-Hotspot (für unterwegs, ohne Router)
+## 4. Eigener WLAN-Hotspot (für unterwegs, ohne Router)
 
 Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 
@@ -167,9 +120,9 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 - Der Drucker hängt am besten per USB am Pi. Ein WLAN-Drucker müsste sich sonst
   ebenfalls mit dem Hotspot verbinden.
 
-## 4. iPad mini einrichten
+## 5. iPad mini einrichten
 
-1. In **Safari** die HTTPS-Adresse öffnen und mit der PIN anmelden.
+1. In **Safari** `https://<pi-adresse>` (im Hotspot `https://10.42.0.1`) öffnen und mit der PIN anmelden.
 2. Kamerazugriff erlauben (dauerhaft: `aA` in der Adressleiste → *Website-Einstellungen* → *Kamera: Erlauben*).
 3. *Teilen* → **Zum Home-Bildschirm**. Danach die Photobox über das neue Icon starten,
    dann läuft sie im Vollbild ohne Safari-Leisten.
@@ -200,6 +153,6 @@ immer HTTPS nötig.
 | `static/app.js` | Kamera, Countdown, Aufnahme, Galerie, Drucken |
 | `static/style.css` | Querformat-Layout für das iPad mini |
 | `install.sh`, `deploy/photobox.service` | Installation und systemd-Dienst für den Pi |
-| `setup-local-https.sh` | HTTPS im Heimnetz ohne Internet (Caddy) |
+| `setup-local-https.sh` | HTTPS im lokalen Netz (Caddy) |
 | `setup-hotspot.sh`, `hotspot.sh` | Eigener WLAN-Hotspot des Pi |
 | `photos/` | Gespeicherte Fotos (wird automatisch angelegt) |

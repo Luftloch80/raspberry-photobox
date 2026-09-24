@@ -53,8 +53,8 @@ app.config.update(
 class SessionInterface(SecureCookieSessionInterface):
     """Setzt das Secure-Flag nur, wenn die Seite per HTTPS aufgerufen wurde.
 
-    So klappt die Anmeldung sowohl im Heimnetz (http://) als auch über den
-    Cloudflare Tunnel (https://, erkennbar an X-Forwarded-Proto).
+    So klappt die Anmeldung sowohl direkt (http://<pi>:8080) als auch über
+    Caddy (https://, erkennbar an X-Forwarded-Proto).
     """
 
     def get_cookie_secure(self, app):
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     host = os.environ.get("PHOTOBOX_HOST", "127.0.0.1")
     port = int(os.environ.get("PHOTOBOX_PORT", "8080"))
     print(f"Photobox läuft auf http://{host}:{port}")
-    # cloudflared läuft auf demselben Pi und meldet per X-Forwarded-Proto, dass HTTPS benutzt wird
+    # Caddy läuft auf demselben Pi und meldet per X-Forwarded-Proto, dass HTTPS benutzt wird
     serve(
         app,
         host=host,
