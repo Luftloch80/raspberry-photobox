@@ -564,6 +564,7 @@
   }
   $("guideBtn").addEventListener("click", () => { renderGuide(); guide.hidden = false; });
   $("guideClose").addEventListener("click", closeGuide);
+  $("guideShutter").addEventListener("click", () => { closeGuide(); takePhoto(); });
   guide.addEventListener("click", (e) => { if (e.target === guide) closeGuide(); });
   renderGuide();
 

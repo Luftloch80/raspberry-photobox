@@ -74,7 +74,7 @@
       <h2>📸 So funktioniert's</h2>
       <ol class="guide-steps">
         <li>Stellt euch vor das iPad – ihr seht euch im Bild.</li>
-        <li>Den <b>runden Knopf unten</b> drücken (oder den Fernauslöser).</li>
+        <li>Timer und Anzahl wählen, dann den <b>runden Auslöser</b> drücken.</li>
         <li>Countdown abwarten und lächeln! 😄</li>
         <li>Foto antippen und auf <b>Drucken</b> tippen.</li>
       </ol>
@@ -96,7 +96,11 @@
           <button type="button" data-v="4">4</button>
         </div>
       </div>
-      <button class="btn primary big" id="guideClose" type="button">Los geht's!</button>
+      <div class="guide-shoot">
+        <button class="shutter guide-shutter" id="guideShutter" type="button" aria-label="Foto aufnehmen"><span></span></button>
+        <span>Auslösen</span>
+      </div>
+      <button class="btn small guide-close" id="guideClose" type="button">Schließen</button>
     </div>
   </div>
 
