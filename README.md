@@ -94,7 +94,6 @@ Die Photobox ist jetzt unter **https://photobox.deine-domain.de** erreichbar.
 
 **Ohne eigene Domain, nur zum Ausprobieren:** `cloudflared tunnel --url http://localhost:8080`
 erzeugt eine zufällige `https://….trycloudflare.com`-Adresse. Sie ändert sich bei jedem Start.
-In diesem Fall `PHOTOBOX_COOKIE_SECURE=1` so lassen.
 
 *Alternative:* [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
 (`sudo tailscale funnel 8080`) funktioniert ebenfalls und liefert eine HTTPS-Adresse.

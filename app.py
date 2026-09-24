@@ -24,6 +24,7 @@ from flask import (
     session,
     url_for,
 )
+from flask.sessions import SecureCookieSessionInterface
 from PIL import Image, ImageOps
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -46,8 +47,21 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=os.environ.get("PHOTOBOX_COOKIE_SECURE", "0") == "1",
 )
+
+
+class SessionInterface(SecureCookieSessionInterface):
+    """Setzt das Secure-Flag nur, wenn die Seite per HTTPS aufgerufen wurde.
+
+    So klappt die Anmeldung sowohl im Heimnetz (http://) als auch über den
+    Cloudflare Tunnel (https://, erkennbar an X-Forwarded-Proto).
+    """
+
+    def get_cookie_secure(self, app):
+        return request.is_secure or request.headers.get("X-Forwarded-Proto") == "https"
+
+
+app.session_interface = SessionInterface()
 
 
 # --------------------------------------------------------------------------
@@ -271,4 +285,12 @@ if __name__ == "__main__":
     host = os.environ.get("PHOTOBOX_HOST", "127.0.0.1")
     port = int(os.environ.get("PHOTOBOX_PORT", "8080"))
     print(f"Photobox läuft auf http://{host}:{port}")
-    serve(app, host=host, port=port, threads=8)
+    # cloudflared läuft auf demselben Pi und meldet per X-Forwarded-Proto, dass HTTPS benutzt wird
+    serve(
+        app,
+        host=host,
+        port=port,
+        threads=8,
+        trusted_proxy="127.0.0.1",
+        trusted_proxy_headers={"x-forwarded-proto"},
+    )
