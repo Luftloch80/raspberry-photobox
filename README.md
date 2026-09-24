@@ -116,11 +116,29 @@ Danach einmalig auf dem iPad (in **Safari**):
 4. Photobox öffnen: `https://<pi-adresse>` oder `https://<hostname>.local`
 
 Hinweise:
-- Die IP-Adresse des Pi im Router fest vergeben (DHCP-Reservierung). Ändert sie sich,
-  `./setup-local-https.sh` erneut ausführen. Das Zertifikat auf dem iPad bleibt gültig.
-- Der Pi hat keine Uhr mit Batterie. Ohne Internet stellt er die Uhrzeit nach einem
-  Neustart nicht nach. Liegt sie mehr als ein paar Tage daneben, lehnt das iPad das
-  Zertifikat ab. Dann die Zeit setzen: `sudo date -s "2026-09-24 18:00"`.
+- Das Zertifikat ist 800 Tage gültig. Eine falsch gehende Uhr des Pi (ohne Internet)
+  stört deshalb nicht. Danach `./setup-local-https.sh` erneut ausführen.
+- Ändert sich die IP-Adresse des Pi, `./setup-local-https.sh` erneut ausführen. Das
+  iPad muss dafür nichts neu installieren.
+
+## 3c. Eigener WLAN-Hotspot (für unterwegs, ohne Router)
+
+Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
+
+```bash
+./setup-hotspot.sh                      # WLAN "Photobox", Passwort wird erzeugt
+./setup-hotspot.sh MeinePhotobox geheim123   # eigener Name und Passwort (mind. 8 Zeichen)
+```
+
+- Der Hotspot startet **automatisch**, wenn kein bekanntes WLAN in Reichweite ist,
+  also z. B. auf der Party. Zu Hause verbindet sich der Pi weiter mit dem Heim-WLAN.
+- Photobox im Hotspot: **https://10.42.0.1**
+- Manuell umschalten: `./hotspot.sh on`, `./hotspot.sh off`, `./hotspot.sh status`.
+  Ist der Pi per WLAN mit SSH verbunden, bricht die Verbindung bei `on` ab.
+- Das iPad meldet im Hotspot „Keine Internetverbindung“. Das ist normal, die Photobox
+  funktioniert trotzdem.
+- Der Drucker hängt am besten per USB am Pi. Ein WLAN-Drucker müsste sich sonst
+  ebenfalls mit dem Hotspot verbinden.
 
 ## 4. iPad mini einrichten
 
@@ -156,4 +174,5 @@ immer HTTPS nötig.
 | `static/style.css` | Querformat-Layout für das iPad mini |
 | `install.sh`, `deploy/photobox.service` | Installation und systemd-Dienst für den Pi |
 | `setup-local-https.sh` | HTTPS im Heimnetz ohne Internet (Caddy) |
+| `setup-hotspot.sh`, `hotspot.sh` | Eigener WLAN-Hotspot des Pi |
 | `photos/` | Gespeicherte Fotos (wird automatisch angelegt) |
