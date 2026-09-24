@@ -272,9 +272,11 @@ case "${1:-}" in
         start_hotspot
         ;;
       fallback)
-        # NetworkManager etwas Zeit geben, ein bekanntes WLAN zu finden
-        for _ in $(seq 1 45); do
+        # NetworkManager genug Zeit geben, ein bekanntes WLAN zu finden (ältere Pis
+        # brauchen nach dem Start etwas); per Kabel verbunden → kein Hotspot nötig
+        for _ in $(seq 1 90); do
           [ -n "$(current_wifi)" ] && exit 0
+          nmcli -t -f TYPE,STATE device | grep -q '^ethernet:connected' && exit 0
           sleep 1
         done
         log "Systemstart: kein bekanntes WLAN – starte Hotspot"
