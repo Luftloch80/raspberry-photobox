@@ -74,9 +74,9 @@ jobs:
             1. Mit dem **Raspberry Pi Imager** auf eine SD-Karte schreiben
                ("Eigenes Image verwenden", bei der Frage nach Anpassungen **"Nein"** wählen).
             2. Optional: auf der SD-Karte (Laufwerk `bootfs`) die Datei `photobox.txt` anpassen
-               (WLAN-Name, WLAN-Passwort, PIN, Druckoptionen).
+               (WLAN-Name, WLAN-Passwort, Druckoptionen).
             3. Pi starten. Nach ca. 1–2 Minuten erscheint das WLAN **Photobox** (Passwort `photobox123`).
             4. Auf dem iPad: `http://10.42.0.1:8080/ca.crt` laden und dem Zertifikat vertrauen,
-               danach **https://10.42.0.1** öffnen (PIN `2468`).
+               danach **https://10.42.0.1** öffnen.
 
             SSH/CUPS-Login: Benutzer `photobox`, Passwort `photobox` (bitte mit `passwd` ändern).

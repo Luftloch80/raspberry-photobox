@@ -24,7 +24,6 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Druckerstatus-Anzeige
 - **Statusseite** (`/status`): WLAN/Hotspot mit verbundenen Geräten, Drucker mit Fehlern
   wie „Papier leer“, Warteschlange (abbrechen/fortsetzen), Temperatur und Speicherplatz
-- PIN-Schutz, damit nur Berechtigte im WLAN die Photobox bedienen
 - Als App zum Home-Bildschirm hinzufügbar (Vollbild, ohne Safari-Leisten)
 - Bildschirm bleibt an (Wake Lock), Hinweis bei Hochformat
 
@@ -36,14 +35,14 @@ Booten automatisch den WLAN-Hotspot, die Photobox, CUPS und HTTPS.
 1. Mit dem [Raspberry Pi Imager](https://www.raspberrypi.com/software/) auf eine SD-Karte
    schreiben: *Eigenes Image verwenden*, bei der Frage nach Anpassungen **Nein** wählen.
 2. Optional am PC auf der SD-Karte (Laufwerk `bootfs`) die Datei **`photobox.txt`**
-   anpassen: WLAN-Name, WLAN-Passwort, PIN, WLAN-Kanal, Drucker und Druckoptionen.
+   anpassen: WLAN-Name, WLAN-Passwort, WLAN-Kanal, Drucker und Druckoptionen.
    Änderungen gelten auch später nach jedem Neustart.
 3. Pi starten und 1–2 Minuten warten, bis das WLAN **Photobox** erscheint
    (Standard-Passwort `photobox123`).
 4. iPad mit dem WLAN verbinden, dann in Safari:
    - `http://10.42.0.1:8080/ca.crt` → *Zulassen* → *Einstellungen → Profil geladen → Installieren*
    - *Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen* → **Photobox Local CA** einschalten
-   - **https://10.42.0.1** öffnen, PIN `2468`
+   - **https://10.42.0.1** öffnen
 5. Drucker per USB anschließen und unter `https://10.42.0.1:631` einrichten
    (Anmeldung: Benutzer `photobox`, Passwort `photobox`).
 
@@ -63,9 +62,9 @@ cd raspberry-photobox
 ./install.sh
 ```
 
-Das Skript installiert CUPS, Caddy und die Python-Abhängigkeiten, legt eine `.env` mit
-zufälliger **PIN** an (wird am Ende angezeigt), richtet HTTPS ein und startet den Dienst `photobox`.
-Einstellungen (PIN, Drucker, Druckoptionen) stehen in `.env`, siehe `.env.example`.
+Das Skript installiert CUPS, Caddy und die Python-Abhängigkeiten, legt eine `.env` an,
+richtet HTTPS ein und startet den Dienst `photobox`.
+Einstellungen (Drucker, Druckoptionen) stehen in `.env`, siehe `.env.example`.
 Nach Änderungen: `sudo systemctl restart photobox`.
 
 ## 2. Drucker einrichten (CUPS)
@@ -124,7 +123,7 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 
 ## 5. iPad mini einrichten
 
-1. In **Safari** `https://<pi-adresse>` (im Hotspot `https://10.42.0.1`) öffnen und mit der PIN anmelden.
+1. In **Safari** `https://<pi-adresse>` (im Hotspot `https://10.42.0.1`) öffnen.
 2. Kamerazugriff erlauben (dauerhaft: `aA` in der Adressleiste → *Website-Einstellungen* → *Kamera: Erlauben*).
 3. *Teilen* → **Zum Home-Bildschirm**. Danach die Photobox über das neue Icon starten,
    dann läuft sie im Vollbild ohne Safari-Leisten.
@@ -140,7 +139,7 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-PHOTOBOX_PIN=1234 python app.py        # → http://127.0.0.1:8080
+python app.py        # → http://127.0.0.1:8080
 ```
 
 Im Desktop-Browser funktioniert die Kamera auch über `http://localhost`. Auf dem iPad ist
@@ -152,7 +151,7 @@ immer HTTPS nötig.
 |---|---|
 | `app.py` | Flask-Server: Anmeldung, Foto-Upload/Galerie, Drucken über `lp` |
 | `status.py`, `templates/status.html`, `static/status.js` | Statusseite für WLAN, Drucker und System |
-| `templates/` | HTML für Dashboard und Anmeldung |
+| `templates/` | HTML für Dashboard und Statusseite |
 | `static/app.js` | Kamera, Countdown, Aufnahme, Galerie, Drucken |
 | `static/style.css` | Querformat-Layout für das iPad mini |
 | `install.sh`, `deploy/photobox.service` | Installation und systemd-Dienst für den Pi |

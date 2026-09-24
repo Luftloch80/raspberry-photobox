@@ -11,9 +11,6 @@ WLAN_NAME=Photobox
 # WLAN-Passwort (mindestens 8 Zeichen)
 WLAN_PASSWORT=photobox123
 
-# PIN für die Anmeldung auf dem iPad (leer lassen = ohne PIN, z. B. "PIN=")
-PIN=2468
-
 # WLAN-Kanal (1-13) und Land
 WLAN_KANAL=6
 WLAN_LAND=DE

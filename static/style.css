@@ -341,14 +341,6 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   .rotate-hint { display: flex; }
 }
 
-/* ---------- Login ---------- */
-
-.login-page {
-  display: grid;
-  place-items: center;
-  padding: 16px;
-}
-.login .error { color: #ff7b8f; margin: 0; }
 
 /* ---------- Statusseite ---------- */
 

@@ -17,7 +17,6 @@ install -d -m 700 "$STATE"
 # ---- Einstellungen lesen (Windows-Zeilenenden werden toleriert) ----
 WLAN_NAME=Photobox
 WLAN_PASSWORT=photobox123
-PIN=2468
 WLAN_KANAL=6
 WLAN_LAND=DE
 DRUCKER=
@@ -33,7 +32,7 @@ if [ -f "$CONF" ]; then
     val="${val#"${val%%[![:space:]]*}"}"
     val="${val%"${val##*[![:space:]]}"}"
     case "$key" in
-      WLAN_NAME|WLAN_PASSWORT|PIN|WLAN_KANAL|WLAN_LAND|DRUCKER|DRUCK_OPTIONEN) printf -v "$key" '%s' "$val" ;;
+      WLAN_NAME|WLAN_PASSWORT|WLAN_KANAL|WLAN_LAND|DRUCKER|DRUCK_OPTIONEN) printf -v "$key" '%s' "$val" ;;
     esac
   done < "$CONF"
 fi
@@ -89,10 +88,7 @@ chmod 600 "$NM_FILE"
 umask 022
 
 # ---- Photobox-Konfiguration ----
-[ -s "$STATE/secret_key" ] || openssl rand -hex 32 > "$STATE/secret_key"
 cat > "$APP/.env" << ENV
-PHOTOBOX_PIN=$PIN
-PHOTOBOX_SECRET_KEY=$(cat "$STATE/secret_key")
 PHOTOBOX_PRINTER=$DRUCKER
 PHOTOBOX_PRINT_OPTIONS=$DRUCK_OPTIONEN
 PHOTOBOX_HOST=0.0.0.0

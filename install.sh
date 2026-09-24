@@ -24,12 +24,6 @@ python3 -m venv "$DIR/.venv"
 if [ ! -f "$DIR/.env" ]; then
   echo "==> .env anlegen"
   cp "$DIR/.env.example" "$DIR/.env"
-  SECRET="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
-  PIN="$(python3 -c 'import secrets; print(f"{secrets.randbelow(10**6):06d}")')"
-  sed -i "s/^PHOTOBOX_SECRET_KEY=.*/PHOTOBOX_SECRET_KEY=$SECRET/" "$DIR/.env"
-  sed -i "s/^PHOTOBOX_PIN=.*/PHOTOBOX_PIN=$PIN/" "$DIR/.env"
-  chmod 600 "$DIR/.env"
-  echo "    Deine PIN für das iPad: $PIN  (änderbar in $DIR/.env)"
 fi
 
 echo "==> systemd-Dienst einrichten"

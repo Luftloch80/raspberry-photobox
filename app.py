@@ -4,13 +4,10 @@ Liefert das Photobox-Dashboard für das iPad aus, speichert die aufgenommenen
 Fotos und schickt sie per CUPS (`lp`) an den Drucker.
 """
 
-import hmac
 import os
 import re
 import subprocess
-import time
-from datetime import datetime, timedelta
-from functools import wraps
+from datetime import datetime
 from pathlib import Path
 
 from flask import (
@@ -21,10 +18,8 @@ from flask import (
     render_template,
     request,
     send_from_directory,
-    session,
     url_for,
 )
-from flask.sessions import SecureCookieSessionInterface
 from PIL import Image, ImageOps
 
 import status
@@ -35,7 +30,6 @@ THUMB_DIR = PHOTO_DIR / "thumbs"
 PHOTO_DIR.mkdir(parents=True, exist_ok=True)
 THUMB_DIR.mkdir(parents=True, exist_ok=True)
 
-PIN = os.environ.get("PHOTOBOX_PIN", "")
 PRINTER = os.environ.get("PHOTOBOX_PRINTER", "")  # leer = CUPS-Standarddrucker
 PRINT_OPTIONS = os.environ.get("PHOTOBOX_PRINT_OPTIONS", "fit-to-page").split()
 MAX_COPIES = int(os.environ.get("PHOTOBOX_MAX_COPIES", "4"))
@@ -43,27 +37,7 @@ THUMB_SIZE = (480, 480)
 PHOTO_NAME = re.compile(r"^\d{8}-\d{6}-\d{3}\.jpg$")
 
 app = Flask(__name__)
-app.config.update(
-    SECRET_KEY=os.environ.get("PHOTOBOX_SECRET_KEY") or os.urandom(32),
-    MAX_CONTENT_LENGTH=25 * 1024 * 1024,
-    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_HTTPONLY=True,
-)
-
-
-class SessionInterface(SecureCookieSessionInterface):
-    """Setzt das Secure-Flag nur, wenn die Seite per HTTPS aufgerufen wurde.
-
-    So klappt die Anmeldung sowohl direkt (http://<pi>:8080) als auch über
-    Caddy (https://, erkennbar an X-Forwarded-Proto).
-    """
-
-    def get_cookie_secure(self, app):
-        return request.is_secure or request.headers.get("X-Forwarded-Proto") == "https"
-
-
-app.session_interface = SessionInterface()
+app.config.update(MAX_CONTENT_LENGTH=25 * 1024 * 1024)
 
 
 @app.context_processor
@@ -74,55 +48,19 @@ def asset_version():
 
 
 # --------------------------------------------------------------------------
-# Anmeldung
-# --------------------------------------------------------------------------
-
-def logged_in():
-    return not PIN or session.get("auth") is True
-
-
-def login_required(view):
-    @wraps(view)
-    def wrapper(*args, **kwargs):
-        if logged_in():
-            return view(*args, **kwargs)
-        if request.path.startswith("/api/"):
-            return jsonify(error="Nicht angemeldet"), 401
-        return redirect(url_for("login"))
-
-    return wrapper
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if not PIN:
-        return redirect(url_for("index"))
-    error = None
-    if request.method == "POST":
-        if hmac.compare_digest(request.form.get("pin", "").encode(), PIN.encode()):
-            session.clear()
-            session.permanent = True
-            session["auth"] = True
-            return redirect(url_for("index"))
-        time.sleep(1.5)  # bremst Durchprobieren der PIN
-        error = "Falsche PIN"
-    return render_template("login.html", error=error)
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
-
-
-# --------------------------------------------------------------------------
 # Seiten & Dateien
 # --------------------------------------------------------------------------
 
 @app.route("/")
-@login_required
 def index():
     return render_template("index.html", max_copies=MAX_COPIES)
+
+
+@app.route("/login")
+@app.route("/logout")
+def old_login():
+    """Frühere Anmeldeseite – alte Lesezeichen/Home-Bildschirm-Icons weiterleiten."""
+    return redirect(url_for("index"))
 
 
 @app.route("/manifest.webmanifest")
@@ -143,7 +81,6 @@ def ca_certificate():
 
 
 @app.route("/photos/<name>")
-@login_required
 def photo_file(name):
     if not PHOTO_NAME.match(name):
         abort(404)
@@ -151,7 +88,6 @@ def photo_file(name):
 
 
 @app.route("/photos/thumbs/<name>")
-@login_required
 def thumb_file(name):
     if not PHOTO_NAME.match(name):
         abort(404)
@@ -192,7 +128,6 @@ def photo_path(name):
 
 
 @app.get("/api/photos")
-@login_required
 def list_photos():
     names = sorted(
         (p.name for p in PHOTO_DIR.glob("*.jpg") if PHOTO_NAME.match(p.name)),
@@ -202,7 +137,6 @@ def list_photos():
 
 
 @app.post("/api/photos")
-@login_required
 def upload_photo():
     file = request.files.get("photo")
     if file is None:
@@ -222,7 +156,6 @@ def upload_photo():
 
 
 @app.delete("/api/photos/<name>")
-@login_required
 def delete_photo(name):
     photo_path(name).unlink()
     (THUMB_DIR / name).unlink(missing_ok=True)
@@ -244,7 +177,6 @@ def lp_command(path, copies):
 
 
 @app.post("/api/photos/<name>/print")
-@login_required
 def print_photo(name):
     path = photo_path(name)
     data = request.get_json(silent=True) or {}
@@ -270,7 +202,6 @@ def print_photo(name):
 
 
 @app.get("/api/printer")
-@login_required
 def printer_status():
     env = {**os.environ, "LANG": "C", "LC_ALL": "C"}
     try:
@@ -303,13 +234,11 @@ def printer_status():
 # --------------------------------------------------------------------------
 
 @app.route("/status")
-@login_required
 def status_page():
     return render_template("status.html")
 
 
 @app.get("/api/status")
-@login_required
 def status_api():
     photos = [p for p in PHOTO_DIR.glob("*.jpg") if PHOTO_NAME.match(p.name)]
     system = status.system_status(PHOTO_DIR)
@@ -323,7 +252,6 @@ def status_api():
 
 
 @app.post("/api/printers/<name>/<action>")
-@login_required
 def printer_action(name, action):
     if action not in ("resume", "cancel") or not re.fullmatch(r"[\w.@-]+", name):
         abort(404)
@@ -339,12 +267,4 @@ if __name__ == "__main__":
     host = os.environ.get("PHOTOBOX_HOST", "127.0.0.1")
     port = int(os.environ.get("PHOTOBOX_PORT", "8080"))
     print(f"Photobox läuft auf http://{host}:{port}")
-    # Caddy läuft auf demselben Pi und meldet per X-Forwarded-Proto, dass HTTPS benutzt wird
-    serve(
-        app,
-        host=host,
-        port=port,
-        threads=8,
-        trusted_proxy="127.0.0.1",
-        trusted_proxy_headers={"x-forwarded-proto"},
-    )
+    serve(app, host=host, port=port, threads=8)

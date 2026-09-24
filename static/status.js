@@ -123,7 +123,6 @@
     button.disabled = true;
     try {
       const res = await fetch(`/api/printers/${encodeURIComponent(name)}/${action}`, { method: "POST", credentials: "same-origin" });
-      if (res.status === 401) { location.href = "/login"; return; }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Fehler ${res.status}`);
       toast(action === "resume" ? "Drucker fortgesetzt" : "Aufträge abgebrochen", "ok");
@@ -250,7 +249,6 @@
   async function refresh() {
     try {
       const res = await fetch("/api/status", { credentials: "same-origin" });
-      if (res.status === 401) { location.href = "/login"; return; }
       if (!res.ok) throw new Error(`Fehler ${res.status}`);
       const data = await res.json();
       renderWifi(data.wifi);

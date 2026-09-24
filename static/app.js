@@ -47,10 +47,6 @@
 
   async function api(url, options = {}) {
     const res = await fetch(url, Object.assign({ credentials: "same-origin" }, options));
-    if (res.status === 401) {
-      location.href = "/login";
-      throw new Error("Nicht angemeldet");
-    }
     let data = null;
     try { data = await res.json(); } catch (e) { /* kein JSON */ }
     if (!res.ok) throw new Error((data && data.error) || `Fehler ${res.status}`);
