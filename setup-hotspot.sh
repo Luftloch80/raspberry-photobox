@@ -34,6 +34,10 @@ if [ ${#PASS} -lt 8 ]; then
   exit 1
 fi
 
+echo "==> Pakete für den Hotspot installieren"
+# dnsmasq-base vergibt im Hotspot die IP-Adressen (NetworkManager "shared")
+sudo apt-get install -y dnsmasq-base iw
+
 echo "==> WLAN-Land auf DE setzen"
 if command -v raspi-config > /dev/null; then
   sudo raspi-config nonint do_wifi_country DE

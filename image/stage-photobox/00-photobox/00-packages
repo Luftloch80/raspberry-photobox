@@ -9,3 +9,4 @@ avahi-daemon
 openssl
 rfkill
 iw
+dnsmasq-base
