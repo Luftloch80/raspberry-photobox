@@ -20,6 +20,7 @@
   const defaults = { countdown: 3, mirror: true, autoPrint: false };
   const SERIES = 4;              // immer 4 Fotos hintereinander
   const TIMERS = [3, 5];         // wählbarer Countdown in Sekunden
+  const REVIEW_MS = 5000;        // Fotos nach der Serie so lange zeigen, bevor die Druckansicht kommt
   const settings = Object.assign({}, defaults, loadSettings());
   const FACING = "user"; // immer die Frontkamera (Selfie)
   delete settings.camera; // frühere Einstellungen, nicht mehr verwendet
@@ -260,6 +261,9 @@
         uploadItem(item); // speichert im Hintergrund, während die Serie weiterläuft
         if (i < total - 1) await sleep(800);
       }
+      // Die fertigen Fotos erst ein paar Sekunden in der Galerie zeigen
+      showShotLabel("");
+      if (items.length) await sleep(REVIEW_MS);
     } catch (err) {
       toast(err.message || String(err), "error");
     } finally {
@@ -319,7 +323,7 @@
 
   function renderThumbs() {
     thumbs.innerHTML = "";
-    for (const p of photos) {
+    for (const p of [...photos].reverse()) {
       const btn = document.createElement("button");
       const img = document.createElement("img");
       img.src = p.thumb;
