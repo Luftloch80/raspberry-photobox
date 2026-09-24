@@ -20,7 +20,7 @@
   // Einstellungen (pro Gerät gespeichert)
   // ---------------------------------------------------------------------
 
-  const defaults = { countdown: 3, burst: 1, mirror: true, autoPrint: false };
+  const defaults = { countdown: 3, burst: 1, mirror: true, autoPrint: false, clearOld: true };
   const settings = Object.assign({}, defaults, loadSettings());
   const FACING = "user"; // immer die Frontkamera (Selfie)
   delete settings.camera; // frühere Kamera-Auswahl nicht mehr verwendet
@@ -223,6 +223,23 @@
     return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
   }
 
+  // Fotos der vorherigen Gäste aus der Galerie nehmen (bleiben im Archiv auf dem Pi)
+  async function archiveOldPhotos() {
+    const ids = photos.map((p) => p.id);
+    if (!ids.length) return;
+    try {
+      await api("/api/photos/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      photos = photos.filter((p) => !ids.includes(p.id));
+      renderThumbs();
+    } catch (err) {
+      console.warn("Archivieren fehlgeschlagen", err);
+    }
+  }
+
   function showShotLabel(text) {
     const el = $("shotLabel");
     el.textContent = text || "";
@@ -239,6 +256,7 @@
     const total = Math.max(1, Math.min(4, settings.burst || 1));
     const items = [];
     try {
+      if (settings.clearOld) await archiveOldPhotos();
       for (let i = 0; i < total; i++) {
         if (total > 1) showShotLabel(`Foto ${i + 1} von ${total}`);
         // Ohne Timer bei Serien kurz Zeit zum Umposieren lassen
@@ -523,11 +541,13 @@
   $("settingsBtn").addEventListener("click", () => {
     $("setMirror").checked = settings.mirror;
     $("setAutoPrint").checked = settings.autoPrint;
+    $("setClearOld").checked = settings.clearOld;
     settingsModal.hidden = false;
   });
   $("closeSettings").addEventListener("click", () => {
     settings.mirror = $("setMirror").checked;
     settings.autoPrint = $("setAutoPrint").checked;
+    settings.clearOld = $("setClearOld").checked;
     saveSettings();
     video.classList.toggle("mirror", settings.mirror);
     settingsModal.hidden = true;
