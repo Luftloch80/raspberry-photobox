@@ -9,12 +9,9 @@
   const thumbs = $("thumbs");
   const viewer = $("viewer");
   const viewerImg = $("viewerImg");
-  const copiesEl = $("copies");
   const printBtn = $("printBtn");
   const retryUploadBtn = $("retryUploadBtn");
-  const deleteBtn = $("deleteBtn");
   const toastEl = $("toast");
-  const maxCopies = (window.PHOTOBOX && window.PHOTOBOX.maxCopies) || 4;
 
   // ---------------------------------------------------------------------
   // Einstellungen (pro Gerät gespeichert)
@@ -338,15 +335,8 @@
 
   let series = [];   // Fotos in der Großansicht: [{ photo?, blob?, localUrl?, isNew, uploadFailed? }]
   let current = null; // gerade angezeigtes Foto aus series
-  let copies = 1;
   let idleTimer;
-  const printAllBtn = $("printAllBtn");
   const strip = $("viewerStrip");
-
-  function setCopies(n) {
-    copies = Math.max(1, Math.min(maxCopies, n));
-    copiesEl.textContent = copies;
-  }
 
   function resetIdle() {
     clearTimeout(idleTimer);
@@ -354,15 +344,13 @@
     idleTimer = setTimeout(closeViewer, 45000);
   }
 
+  // Gedruckt wird immer die ganze Serie (1 Abzug je Foto)
   function updateViewerButtons() {
-    const saved = !!(current && current.photo);
-    printBtn.disabled = !saved;
-    deleteBtn.disabled = !saved;
-    retryUploadBtn.hidden = saved || !current || !current.uploadFailed;
-    const multi = series.length > 1;
-    printAllBtn.hidden = !multi;
-    printAllBtn.disabled = !series.every((it) => it.photo);
-    printAllBtn.textContent = `Alle ${series.length} drucken`;
+    const printed = series.length && series.every((it) => it.printed);
+    printBtn.disabled = printed || !series.length || !series.every((it) => it.photo);
+    $("printLabel").textContent = printed ? "Gedruckt ✓"
+      : series.length > 1 ? `Alle ${series.length} Fotos drucken` : "Drucken";
+    retryUploadBtn.hidden = !series.some((it) => it.uploadFailed && !it.photo);
   }
 
   function renderStrip() {
@@ -387,10 +375,6 @@
   function showItem(i) {
     current = series[i];
     viewerImg.src = current.localUrl || current.photo.url;
-    const multi = series.length > 1;
-    $("viewerTitle").textContent = current.isNew
-      ? (multi ? `Super Fotos! 🎉 (${i + 1}/${series.length})` : "Super Foto! 🎉")
-      : "Foto";
     renderStrip();
     updateViewerButtons();
   }
@@ -398,7 +382,6 @@
   function openViewer(items, index = 0) {
     releaseSeries();
     series = items;
-    setCopies(1);
     showItem(index);
     viewer.hidden = false;
     resetIdle();
@@ -454,7 +437,7 @@
       photos.unshift(photo);
       renderThumbs();
       if (series.includes(item)) updateViewerButtons();
-      if (settings.autoPrint) printItems([item], 1);
+      if (settings.autoPrint) printItems([item]);
     } catch (err) {
       item.uploadFailed = true;
       if (series.includes(item)) updateViewerButtons();
@@ -462,12 +445,11 @@
     }
   }
 
-  async function printItems(items, n) {
+  async function printItems(items) {
     const saved = items.filter((it) => it.photo);
     if (!saved.length) return;
     resetIdle();
     printBtn.disabled = true;
-    printAllBtn.disabled = true;
     let ok = 0;
     let lastError = "";
     for (const it of saved) {
@@ -475,7 +457,7 @@
         await api(`/api/photos/${encodeURIComponent(it.photo.id)}/print`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ copies: n }),
+          body: JSON.stringify({ copies: 1 }),
         });
         it.printed = true;
         ok++;
@@ -483,41 +465,14 @@
         lastError = err.message;
       }
     }
-    if (ok) {
-      const total = ok * n;
-      toast(total > 1 ? `${total} Abzüge werden gedruckt 🖨️` : "Wird gedruckt 🖨️", "ok");
-    }
+    if (ok) toast(ok > 1 ? `${ok} Fotos werden gedruckt 🖨️` : "Wird gedruckt 🖨️", "ok");
     if (lastError) toast("Drucken fehlgeschlagen: " + lastError, "error", 6000);
-    // Kurze Sperre gegen versehentliches Doppel-Tippen
-    setTimeout(updateViewerButtons, 2500);
+    updateViewerButtons();
   }
 
-  async function deleteCurrent() {
-    if (!current || !current.photo) return;
-    if (!confirm("Dieses Foto wirklich löschen?")) return;
-    try {
-      await api(`/api/photos/${encodeURIComponent(current.photo.id)}`, { method: "DELETE" });
-      const id = current.photo.id;
-      photos = photos.filter((p) => p.id !== id);
-      renderThumbs();
-      const i = series.indexOf(current);
-      if (current.localUrl) URL.revokeObjectURL(current.localUrl);
-      series.splice(i, 1);
-      if (!series.length) closeViewer();
-      else showItem(Math.min(i, series.length - 1));
-      toast("Foto gelöscht");
-    } catch (err) {
-      toast("Löschen fehlgeschlagen: " + err.message, "error");
-    }
-  }
-
-  printBtn.addEventListener("click", () => printItems([current], copies));
-  printAllBtn.addEventListener("click", () => printItems(series, copies));
-  retryUploadBtn.addEventListener("click", () => uploadItem(current));
-  deleteBtn.addEventListener("click", deleteCurrent);
+  printBtn.addEventListener("click", () => printItems(series.filter((it) => !it.printed)));
+  retryUploadBtn.addEventListener("click", () => series.filter((it) => it.uploadFailed && !it.photo).forEach(uploadItem));
   $("closeViewer").addEventListener("click", closeViewer);
-  $("copiesMinus").addEventListener("click", () => { setCopies(copies - 1); resetIdle(); });
-  $("copiesPlus").addEventListener("click", () => { setCopies(copies + 1); resetIdle(); });
   viewer.addEventListener("click", (e) => { if (e.target === viewer) closeViewer(); });
 
   // ---------------------------------------------------------------------

@@ -236,24 +236,7 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   justify-content: center;
   gap: 14px;
 }
-.viewer-title { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
 
-.copies {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-.copies span { flex: 1; color: var(--muted); }
-.copies output { font-size: 24px; font-weight: 700; min-width: 1.5em; text-align: center; }
-.round {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  border: 0;
-  background: var(--panel-2);
-  font-size: 26px;
-  line-height: 1;
-}
 
 .btn {
   display: inline-flex;

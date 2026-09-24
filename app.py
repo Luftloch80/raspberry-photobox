@@ -53,7 +53,7 @@ def asset_version():
 
 @app.route("/")
 def index():
-    return render_template("index.html", max_copies=MAX_COPIES)
+    return render_template("index.html")
 
 
 @app.route("/login")
