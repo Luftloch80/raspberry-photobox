@@ -92,8 +92,10 @@
       box.append(r);
     }
 
+    const host = (lastStatus && lastStatus.system.hostname ? lastStatus.system.hostname : "photobox") + ".local";
+    box.append(row("Photobox-Adresse", "https://" + host, "strong"));
     const ips = w.addresses[w.interface] || [];
-    if (ips.length) box.append(row("Photobox-Adresse", ips.map((ip) => "https://" + ip).join("  ·  ")));
+    if (ips.length) box.append(row("IP-Adresse", ips.map((ip) => "https://" + ip).join("  ·  ")));
     box.append(row("LAN-Kabel", w.ethernet ? "verbunden" : "nicht verbunden"));
     if (w.message) box.append(el("p", "muted", w.message));
 
@@ -242,7 +244,7 @@
       text.append(
         el("p", "", `Die Photobox verbindet sich mit ${nets}. Der Hotspot wird dabei ausgeschaltet, das iPad verliert kurz die Verbindung.`),
         el("p", "", "Danach am iPad:"),
-        list([`Einstellungen → WLAN → ${nets} wählen`, `In Safari https://${host} öffnen`]),
+        list([`Einstellungen → WLAN → ${nets} wählen`, `Die Photobox-App öffnen (bzw. https://${host} in Safari)`]),
         el("p", "muted", "Ist kein bekanntes WLAN erreichbar, schaltet die Photobox nach etwa einer Minute automatisch zurück auf den Hotspot."),
       );
     } else {
@@ -250,7 +252,7 @@
       text.append(
         el("p", "", `Die Photobox trennt sich vom WLAN „${w.ssid}“ und startet ihren eigenen Hotspot. Das iPad verliert kurz die Verbindung.`),
         el("p", "", "Danach am iPad:"),
-        list([`Einstellungen → WLAN → „${w.hotspot_ssid}“ wählen`, "In Safari https://10.42.0.1 öffnen"]),
+        list([`Einstellungen → WLAN → „${w.hotspot_ssid}“ wählen`, `Die Photobox-App öffnen (bzw. https://${host} in Safari)`]),
       );
     }
     $("switchConfirm").onclick = () => doSwitch(mode);

@@ -134,7 +134,9 @@ Der Pi spannt selbst ein WLAN auf. Das iPad verbindet sich direkt mit ihm:
 
 ## 5. iPad mini einrichten
 
-1. In **Safari** `https://<pi-adresse>` (im Hotspot `https://10.42.0.1`) öffnen.
+1. In **Safari** **`https://photobox.local`** öffnen (bzw. `https://<hostname>.local`). Diese
+   Adresse funktioniert im Heim-WLAN **und** im Hotspot. Die Home-Bildschirm-App deshalb von
+   dieser Adresse aus anlegen, dann braucht sie nur eine Adresse.
 2. Kamerazugriff erlauben (dauerhaft: `aA` in der Adressleiste → *Website-Einstellungen* → *Kamera: Erlauben*).
 3. *Teilen* → **Zum Home-Bildschirm**. Danach die Photobox über das neue Icon starten,
    dann läuft sie im Vollbild ohne Safari-Leisten.

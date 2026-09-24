@@ -43,7 +43,7 @@ else
 fi
 
 echo "==> Server-Zertifikat ausstellen"
-SAN="DNS:$HOST,DNS:localhost,IP:127.0.0.1,IP:$HOTSPOT_IP"
+SAN="DNS:$HOST,DNS:photobox.local,DNS:localhost,IP:127.0.0.1,IP:$HOTSPOT_IP"
 for ip in $(hostname -I); do
   case "$ip" in
     *:*) ;;                                   # IPv6 überspringen
