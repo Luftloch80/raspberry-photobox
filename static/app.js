@@ -354,17 +354,12 @@
   function updateViewerButtons() {
     const printed = series.length && series.every((it) => it.printed);
     printBtn.disabled = printed || !series.length || !series.every((it) => it.photo);
-    $("printLabel").textContent = printed ? "Gedruckt ✓"
-      : series.length > 1 ? `Alle ${series.length} Fotos drucken` : "Drucken";
+    $("printLabel").textContent = printed ? "Gedruckt ✓" : "Drucken";
     retryUploadBtn.hidden = !series.some((it) => it.uploadFailed && !it.photo);
   }
 
   function renderStrip() {
     strip.replaceChildren();
-    const multi = series.length > 1;
-    strip.hidden = !multi;
-    $("viewerImage").classList.toggle("has-strip", multi);
-    if (!multi) return;
     series.forEach((it, i) => {
       const b = document.createElement("button");
       b.type = "button";
