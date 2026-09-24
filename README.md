@@ -20,7 +20,8 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Großer Knopf **„Drück Mich!“** oben in der Mitte für Gäste: kurze Anleitung, Timer (aus / 3 / 5 / 10 s)
   und **Serien von 1–4 Fotos** hintereinander (Countdown vor jedem Foto)
 - Serien werden zusammen angezeigt: einzeln oder **alle drucken**
-- Beginnt eine neue Serie, werden die Fotos der vorherigen Gäste **endgültig gelöscht**
+- Nicht gedruckte Fotos werden beim Verlassen der Fotoansicht gelöscht; beginnt eine neue
+  Serie, werden auch die gedruckten Fotos der vorherigen Gäste **endgültig gelöscht**
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei

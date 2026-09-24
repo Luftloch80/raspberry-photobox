@@ -226,19 +226,7 @@
 
   // Fotos der vorherigen Gäste endgültig löschen, bevor eine neue Serie beginnt
   async function deleteOldPhotos() {
-    const ids = photos.map((p) => p.id);
-    if (!ids.length) return;
-    try {
-      await api("/api/photos/clear", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      photos = photos.filter((p) => !ids.includes(p.id));
-      renderThumbs();
-    } catch (err) {
-      console.warn("Alte Fotos konnten nicht gelöscht werden", err);
-    }
+    await deletePhotos(photos.map((p) => p.id));
   }
 
   function showShotLabel(text) {
@@ -425,9 +413,29 @@
   function closeViewer() {
     clearTimeout(idleTimer);
     viewer.hidden = true;
+    // Neu aufgenommene, nicht gedruckte Fotos werden beim Verlassen gelöscht
+    const unprinted = series.filter((it) => it.isNew && !it.printed);
+    for (const it of unprinted) it.discard = true; // noch nicht hochgeladene: nach dem Upload löschen
+    deletePhotos(unprinted.filter((it) => it.photo).map((it) => it.photo.id));
     releaseSeries();
     series = [];
     current = null;
+  }
+
+  // Fotos auf dem Pi endgültig löschen und aus der Galerie nehmen
+  async function deletePhotos(ids) {
+    if (!ids.length) return;
+    photos = photos.filter((p) => !ids.includes(p.id));
+    renderThumbs();
+    try {
+      await api("/api/photos/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+    } catch (err) {
+      console.warn("Fotos konnten nicht gelöscht werden", err);
+    }
   }
 
   async function uploadItem(item) {
@@ -440,6 +448,11 @@
       const photo = await api("/api/photos", { method: "POST", body: form });
       item.photo = photo;
       item.blob = null;
+      if (item.discard) {
+        // Ansicht wurde ohne Drucken verlassen, bevor das Foto gespeichert war
+        deletePhotos([photo.id]);
+        return;
+      }
       newestId = photo.id;
       photos.unshift(photo);
       renderThumbs();
@@ -467,6 +480,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ copies: n }),
         });
+        it.printed = true;
         ok++;
       } catch (err) {
         lastError = err.message;
