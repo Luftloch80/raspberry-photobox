@@ -435,6 +435,12 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   font-weight: 800;
   color: #fff;
 }
+.saver h2 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
 .saver p {
   margin: 0;
   max-width: 640px;
