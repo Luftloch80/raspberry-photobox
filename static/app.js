@@ -423,7 +423,8 @@
 
   async function loadPhotos() {
     try {
-      photos = await api("/api/photos");
+      const list = await api("/api/photos");
+      photos = list.filter((p) => !deletedIds.has(p.id));
       renderThumbs();
     } catch (err) {
       toast("Fotos konnten nicht geladen werden: " + err.message, "error");
@@ -522,30 +523,53 @@
     clearInterval(idleTimer);
     viewer.hidden = true;
     // Neu aufgenommene Fotos werden beim Verlassen gelöscht – ob gedruckt oder nicht
+    // Die Fotospalte ist danach leer – auch Fotos, die noch in der Galerie standen
     const taken = series.filter((it) => it.isNew);
     for (const it of taken) it.discard = true; // noch nicht hochgeladene: nach dem Upload löschen
-    const ids = taken.filter((it) => it.photo).map((it) => it.photo.id);
-    // Läuft gerade ein Druckauftrag, erst danach löschen (der Server braucht die Fotos noch)
-    Promise.resolve(printing).finally(() => deletePhotos(ids));
+    const ids = [...new Set([
+      ...taken.filter((it) => it.photo).map((it) => it.photo.id),
+      ...photos.map((p) => p.id),
+    ])];
+    hidePhotos(ids); // sofort aus der Spalte
+    // Läuft gerade ein Druckauftrag, erst danach auf dem Pi löschen (der Server braucht die Fotos noch)
+    Promise.resolve(printing).finally(() => deleteOnServer(ids));
     releaseSeries();
     series = [];
     current = null;
   }
 
+  // Gelöschte Fotos merken, damit sie beim Nachladen der Galerie nicht wieder auftauchen
+  const deletedIds = new Set();
+
+  function hidePhotos(ids) {
+    for (const id of ids) deletedIds.add(id);
+    photos = photos.filter((p) => !deletedIds.has(p.id));
+    renderThumbs();
+  }
+
+  // Auf dem Pi löschen; bei Netzwerkproblemen bis zu 3 Versuche
+  async function deleteOnServer(ids) {
+    if (!ids.length) return;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await api("/api/photos/clear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+        return;
+      } catch (err) {
+        console.warn(`Fotos konnten nicht gelöscht werden (Versuch ${attempt})`, err);
+        await sleep(1500 * attempt);
+      }
+    }
+  }
+
   // Fotos auf dem Pi endgültig löschen und aus der Galerie nehmen
   async function deletePhotos(ids) {
     if (!ids.length) return;
-    photos = photos.filter((p) => !ids.includes(p.id));
-    renderThumbs();
-    try {
-      await api("/api/photos/clear", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-    } catch (err) {
-      console.warn("Fotos konnten nicht gelöscht werden", err);
-    }
+    hidePhotos(ids);
+    await deleteOnServer(ids);
   }
 
   async function uploadItem(item) {
