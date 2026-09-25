@@ -547,10 +547,10 @@
       });
       for (const it of saved) it.printed = true;
       toast("Wird gedruckt 🖨️", "ok");
-      // 2 s nach dem Drucken zurück zur Kamera – unabhängig vom Countdown
+      // 5 s nach dem Drucken zurück zur Kamera – unabhängig vom Countdown
       setTimeout(() => {
         if (!viewer.hidden && series === printedSeries) closeViewer();
-      }, 2000);
+      }, 5000);
     } catch (err) {
       toast("Drucken fehlgeschlagen: " + err.message, "error", 6000);
     }
