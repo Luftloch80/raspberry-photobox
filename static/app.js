@@ -345,6 +345,12 @@
   ]);
 
   document.addEventListener("keydown", (e) => {
+    // Erster Tastendruck weckt nur den Bildschirmschoner auf
+    if (!saver.hidden) {
+      e.preventDefault();
+      wakeSaver();
+      return;
+    }
     const isTrigger = TRIGGER_KEYS.has(e.key);
     if (!$("settings").hidden) {
       // Tastentest in den Einstellungen
@@ -618,6 +624,86 @@
   });
   guide.addEventListener("click", (e) => { if (e.target === guide) closeGuide(); });
   renderGuide();
+
+  // ---------------------------------------------------------------------
+  // Bildschirmschoner mit Bewegungserkennung
+  // Nach 2 Minuten ohne Bedienung erscheint eine Einladung. Solange sie zu sehen
+  // ist, vergleicht die App ein winziges Kamerabild mit dem vorherigen – stellt
+  // sich jemand vor das iPad, wacht die Photobox auf. Nichts davon wird gespeichert.
+  // ---------------------------------------------------------------------
+
+  const saver = $("saver");
+  const SAVER_MS = 2 * 60 * 1000;
+  const MOTION_W = 48, MOTION_H = 36;  // Größe des Vergleichsbilds
+  const MOTION_PIXEL = 28;             // Helligkeitsunterschied, ab dem ein Pixel „bewegt“ ist
+  const MOTION_SHARE = 0.07;           // Anteil bewegter Pixel, ab dem jemand davor steht
+  let lastActivity = Date.now();
+  let motionTimer = null;
+  let motionPrev = null;
+  let motionHits = 0;
+  let motionSince = 0;
+  const motionCanvas = document.createElement("canvas");
+  motionCanvas.width = MOTION_W;
+  motionCanvas.height = MOTION_H;
+  const motionCtx = motionCanvas.getContext("2d", { willReadFrequently: true });
+
+  function noteActivity() { lastActivity = Date.now(); }
+  for (const type of ["touchstart", "click", "keydown"]) {
+    document.addEventListener(type, noteActivity, { capture: true, passive: true });
+  }
+
+  function showSaver() {
+    if (!guide.hidden) closeGuide();
+    saver.hidden = false;
+    motionPrev = null;
+    motionHits = 0;
+    motionSince = Date.now();
+    clearInterval(motionTimer);
+    motionTimer = setInterval(checkMotion, 300);
+  }
+
+  function wakeSaver() {
+    saver.hidden = true;
+    clearInterval(motionTimer);
+    motionTimer = null;
+    motionPrev = null;
+    noteActivity();
+  }
+
+  function checkMotion() {
+    if (video.readyState < 2 || !video.videoWidth) return;
+    try {
+      motionCtx.drawImage(video, 0, 0, MOTION_W, MOTION_H);
+      const px = motionCtx.getImageData(0, 0, MOTION_W, MOTION_H).data;
+      const gray = new Uint8Array(MOTION_W * MOTION_H);
+      let sum = 0;
+      for (let i = 0, j = 0; j < gray.length; i += 4, j++) {
+        gray[j] = (px[i] * 3 + px[i + 1] * 6 + px[i + 2]) / 10;
+        sum += gray[j];
+      }
+      const mean = sum / gray.length;
+      if (motionPrev && Date.now() - motionSince > 1500) {
+        // Gesamthelligkeit herausrechnen (automatische Belichtung, Licht an/aus)
+        const shift = mean - motionPrev.mean;
+        let moved = 0;
+        for (let j = 0; j < gray.length; j++) {
+          if (Math.abs(gray[j] - motionPrev.gray[j] - shift) > MOTION_PIXEL) moved++;
+        }
+        motionHits = moved / gray.length > MOTION_SHARE ? motionHits + 1 : 0;
+        if (motionHits >= 2) { wakeSaver(); return; }
+      }
+      motionPrev = { gray, mean };
+    } catch (e) { /* Kamera gerade nicht lesbar */ }
+  }
+
+  saver.addEventListener("click", wakeSaver);
+
+  setInterval(() => {
+    if (!saver.hidden) return;
+    // Nur auf der Kameraseite ohne offene Fenster; sonst zählt es als Bedienung
+    if (busy || !viewer.hidden || !$("settings").hidden) { noteActivity(); return; }
+    if (Date.now() - lastActivity > SAVER_MS) showSaver();
+  }, 1000);
 
   // iOS: Pinch-Zoom verhindern (Doppeltipp-Zoom verhindert touch-action im CSS)
   document.addEventListener("gesturestart", (e) => e.preventDefault());

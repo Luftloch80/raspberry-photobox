@@ -402,6 +402,56 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
 .toast.error { background: #6b1d2a; }
 .toast.ok { background: #1d5b3a; }
 
+/* ---------- Bildschirmschoner ---------- */
+
+.saver {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 40%, #3a1320 0%, #140a10 55%, #050507 100%);
+  animation: fade .6s ease-out;
+}
+.saver-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  /* langsames Wandern, damit das Bild nicht „steht“ */
+  animation: saver-drift 14s ease-in-out infinite;
+}
+.saver-icon {
+  font-size: 110px;
+  line-height: 1;
+  animation: saver-bounce 2.4s ease-in-out infinite;
+}
+.saver h1 {
+  margin: 0;
+  font-size: 52px;
+  font-weight: 800;
+  color: #fff;
+}
+.saver p {
+  margin: 0;
+  max-width: 640px;
+  font-size: 22px;
+  color: rgba(255, 255, 255, .7);
+}
+@keyframes saver-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-14px) scale(1.06); }
+}
+@keyframes saver-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-30px, -18px); }
+  50% { transform: translate(24px, 16px); }
+  75% { transform: translate(30px, -12px); }
+}
+
 .rotate-hint {
   position: fixed;
   inset: 0;

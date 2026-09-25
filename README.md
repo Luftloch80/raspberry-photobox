@@ -27,6 +27,9 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
   nebeneinander (Schnittlinie in der Mitte). Einmal pro Serie.
 - Bei **„Zurück zur Kamera“** werden die Fotos der Serie **endgültig gelöscht** – ob gedruckt
   oder nicht. Nur der zuletzt gedruckte Streifen bleibt für „Letzten Druck ansehen“ liegen.
+- **Bildschirmschoner** nach 2 Minuten ohne Bedienung („Stell dich vor die Kamera!“); er wacht
+  per **Bewegungserkennung** über die Frontkamera auf, sobald sich jemand davorstellt, oder
+  bei Berührung/Tastendruck. Dafür am iPad *Automatische Sperre → Nie* einstellen.
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei
