@@ -238,56 +238,41 @@
   }
 
   // ---------------------------------------------------------------------
-  // Auslösegeräusch: typisches „Klick-Klack“ einer Kamera, per Web Audio erzeugt
-  // (keine Audiodatei nötig). iOS erlaubt Ton erst nach einer Berührung/Taste –
-  // deshalb wird der Audio-Kontext bei der ersten Bedienung freigeschaltet.
+  // Auslösegeräusch: „Klick-Klack“ einer Kamera (static/shutter.wav).
+  // Bewusst ein <audio>-Element statt Web Audio: Web Audio schaltet iPadOS stumm,
+  // sobald das iPad auf lautlos steht. iOS spielt Ton aber erst ab, nachdem das
+  // Element einmal bei einer Berührung/Taste gestartet wurde – das passiert
+  // unhörbar bei der ersten Bedienung.
   // ---------------------------------------------------------------------
 
-  let audioCtx = null;
+  const shutterSound = $("shutterSound");
+  let soundUnlocked = false;
 
-  function unlockAudio() {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    try {
-      if (!audioCtx) audioCtx = new Ctx();
-      if (audioCtx.state === "suspended") audioCtx.resume();
-    } catch (e) { audioCtx = null; }
+  function unlockSound() {
+    if (soundUnlocked || !shutterSound) return;
+    shutterSound.muted = true;
+    const p = shutterSound.play();
+    const done = () => {
+      soundUnlocked = true;
+      if (!shutterSound.muted) return; // inzwischen echt abgespielt (z. B. „Ton testen“)
+      shutterSound.pause();
+      shutterSound.currentTime = 0;
+      shutterSound.muted = false;
+    };
+    if (p && p.then) p.then(done, () => { shutterSound.muted = false; });
+    else done();
   }
   for (const type of ["touchend", "click", "keydown"]) {
-    document.addEventListener(type, unlockAudio, { capture: true, passive: true });
+    document.addEventListener(type, unlockSound, { capture: true, passive: true });
   }
 
-  // Ein kurzer, gefilterter Rausch-Knack (Verschlussvorhang)
-  function snap(ctx, at, { freq, q = 1, gain, decay }) {
-    const len = Math.ceil(ctx.sampleRate * (decay + 0.02));
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = freq;
-    filter.Q.value = q;
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0.0001, at);
-    env.gain.exponentialRampToValueAtTime(gain, at + 0.002);
-    env.gain.exponentialRampToValueAtTime(0.0001, at + decay);
-    src.connect(filter).connect(env).connect(ctx.destination);
-    src.start(at);
-    src.stop(at + decay + 0.02);
-  }
-
-  function playShutterSound() {
-    if (!settings.sound) return;
-    unlockAudio();
-    if (!audioCtx) return;
+  function playShutterSound(force) {
+    if ((!settings.sound && !force) || !shutterSound) return;
     try {
-      const t = audioCtx.currentTime + 0.01;
-      snap(audioCtx, t, { freq: 3200, q: 0.8, gain: 1.0, decay: 0.035 });         // Klick
-      snap(audioCtx, t + 0.002, { freq: 900, q: 1.5, gain: 0.5, decay: 0.05 });   // Körper
-      snap(audioCtx, t + 0.11, { freq: 2400, q: 0.8, gain: 0.7, decay: 0.045 });  // Klack
-      snap(audioCtx, t + 0.112, { freq: 700, q: 1.5, gain: 0.35, decay: 0.06 });
+      shutterSound.muted = false;
+      shutterSound.currentTime = 0;
+      const p = shutterSound.play();
+      if (p && p.catch) p.catch((err) => console.warn("Auslösegeräusch blockiert", err));
     } catch (e) { /* Ton ist nur Beiwerk */ }
   }
 
@@ -574,6 +559,7 @@
     $("setSound").checked = settings.sound;
     settingsModal.hidden = false;
   });
+  $("testSound").addEventListener("click", () => playShutterSound(true));
   $("closeSettings").addEventListener("click", () => {
     settings.mirror = $("setMirror").checked;
     settings.autoPrint = $("setAutoPrint").checked;
