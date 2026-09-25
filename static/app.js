@@ -388,7 +388,7 @@
       img.src = it.localUrl || it.photo.thumb;
       img.alt = `Foto ${i + 1}`;
       b.appendChild(img);
-      b.addEventListener("click", () => { showItem(i); resetIdle(); });
+      b.addEventListener("click", () => showItem(i));
       strip.appendChild(b);
     });
   }
