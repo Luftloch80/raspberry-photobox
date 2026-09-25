@@ -669,7 +669,19 @@
     for (const b of $("guideTimer").children) b.classList.toggle("active", Number(b.dataset.v) === settings.countdown);
   }
 
+  // Ohne Auslösen schließt sich das Fenster nach 10 s von selbst
+  const GUIDE_MS = 10000;
+  let guideCloseTimer = null;
+
+  function openGuide() {
+    renderGuide();
+    guide.hidden = false;
+    clearTimeout(guideCloseTimer);
+    guideCloseTimer = setTimeout(closeGuide, GUIDE_MS);
+  }
+
   function closeGuide() {
+    clearTimeout(guideCloseTimer);
     guide.hidden = true;
   }
 
@@ -682,8 +694,7 @@
       renderGuide();
     });
   }
-  $("guideBtn").addEventListener("click", () => { renderGuide(); guide.hidden = false; });
-  $("guideClose").addEventListener("click", closeGuide);
+  $("guideBtn").addEventListener("click", openGuide);
   $("guideShutter").addEventListener("click", () => {
     if (shutter.disabled && !busy) {
       toast("Die Kamera ist noch nicht bereit", "error");

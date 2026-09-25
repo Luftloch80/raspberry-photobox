@@ -700,4 +700,3 @@ body.shooting .guide-btn, body.shooting .settings-btn { opacity: 0; pointer-even
   border-color: var(--text);
   background: rgba(255, 255, 255, .08);
 }
-.guide-close { align-self: center; background: transparent; color: var(--muted); }
