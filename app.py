@@ -37,6 +37,14 @@ MAX_COPIES = int(os.environ.get("PHOTOBOX_MAX_COPIES", "4"))
 # Fotostreifen: 2 = zwei Streifen nebeneinander auf 10×15 cm, 1 = ein Streifen (5×15 cm)
 STRIPS_PER_PAGE = int(os.environ.get("PHOTOBOX_STRIPS_PER_PAGE", "2"))
 STRIP_DIR = PHOTO_DIR / "strips"
+# Wo der CUPS-PDF-Drucker (cups-pdf) seine Dateien ablegt – für „Letzten Druck ansehen“
+PDF_DIRS = [
+    Path(d).expanduser()
+    for d in os.environ.get(
+        "PHOTOBOX_PDF_DIRS", "~/PDF:/var/spool/cups-pdf/ANONYMOUS"
+    ).split(":")
+    if d
+]
 THUMB_SIZE = (480, 480)
 PHOTO_NAME = re.compile(r"^\d{8}-\d{6}-\d{3}\.jpg$")
 
@@ -244,6 +252,57 @@ def print_strip():
     return run_lp(out, 1)
 
 
+def last_print():
+    """Neueste Druckdatei: PDF vom PDF-Drucker oder zuletzt gedruckter Fotostreifen."""
+    candidates = []
+    for folder in PDF_DIRS:
+        try:
+            candidates += [p for p in folder.glob("*.pdf") if p.is_file()]
+        except OSError:
+            pass
+    try:
+        candidates += [p for p in STRIP_DIR.glob("strip-*") if p.is_file()]
+    except OSError:
+        pass
+    best, best_time = None, 0
+    for p in candidates:
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > best_time:
+            best, best_time = p, mtime
+    return best, best_time
+
+
+def last_print_info():
+    path, mtime = last_print()
+    if not path:
+        return None
+    return {
+        "kind": "pdf" if path.suffix.lower() == ".pdf" else "strip",
+        "time": datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
+        "version": int(mtime),
+    }
+
+
+@app.get("/last-print")
+def last_print_file():
+    path, _ = last_print()
+    if not path:
+        return "Noch kein Druck vorhanden.", 404, {"Content-Type": "text/plain; charset=utf-8"}
+    pdf = path.suffix.lower() == ".pdf"
+    resp = send_from_directory(
+        path.parent,
+        path.name,
+        mimetype="application/pdf" if pdf else "image/jpeg",
+        download_name="letzter-druck.pdf" if pdf else "letzter-druck.jpg",
+        max_age=0,
+    )
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 @app.get("/api/printer")
 def printer_status():
     env = {**os.environ, "LANG": "C", "LC_ALL": "C"}
@@ -290,6 +349,7 @@ def status_api():
     return jsonify(
         wifi=status.wifi_status(),
         printer=status.printer_status(PRINTER),
+        last_print=last_print_info(),
         system=system,
     )
 

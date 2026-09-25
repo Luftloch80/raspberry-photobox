@@ -306,7 +306,7 @@
     }
   }
 
-  function renderPrinter(p, jobs) {
+  function renderPrinter(p, jobs, last) {
     const box = $("printer");
     box.replaceChildren();
     if (!p.available) {
@@ -365,7 +365,17 @@
     const cups = el("a", "btn small", "Drucker verwalten (CUPS)");
     cups.href = `https://${location.hostname}:8631/printers/`;
     cups.target = "_blank";
+    if (last) {
+      const when = new Date(last.time).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+      box.append(row("Letzter Druck", `${when} Uhr (${last.kind === "pdf" ? "PDF" : "Fotostreifen"})`));
+    }
     const links = el("div", "actions");
+    if (last) {
+      const view = el("a", "btn primary small", "Letzten Druck ansehen");
+      view.href = `/last-print?v=${last.version}`;
+      view.target = "_blank";
+      links.append(view);
+    }
     links.append(cups);
     box.append(links);
   }
@@ -426,7 +436,7 @@
       const data = await res.json();
       lastStatus = data;
       renderWifi(data.wifi);
-      renderPrinter(data.printer, (data.printer.available && data.printer.jobs) || []);
+      renderPrinter(data.printer, (data.printer.available && data.printer.jobs) || [], data.last_print);
       renderJobs(data.printer);
       renderSystem(data.system);
       $("updated").textContent = "Aktualisiert " + new Date().toLocaleTimeString("de-DE");

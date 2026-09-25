@@ -95,6 +95,8 @@ Nach Änderungen: `sudo systemctl restart photobox`.
    (`sudo apt install printer-driver-cups-pdf`). Er heißt `PDF` und legt jeden Druck als
    PDF in `~/PDF/` des Benutzers ab, unter dem die Photobox läuft. In `.env`
    `PHOTOBOX_PRINTER=PDF` setzen und `sudo systemctl restart photobox`.
+   Das Ergebnis zeigt die Statusseite unter **Drucker → „Letzten Druck ansehen“** direkt
+   auf dem iPad an (andere Ablageordner über `PHOTOBOX_PDF_DIRS`).
 
 Tipps:
 - **Canon Selphy** (CP1300/CP1500) wird von `printer-driver-gutenprint` unterstützt.
