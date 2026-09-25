@@ -98,10 +98,7 @@
     <div class="panel">
       <h2>Einstellungen</h2>
       <label class="check"><input type="checkbox" id="setMirror"> Bild spiegeln (wie ein Spiegel)</label>
-      <div class="sound-row">
-        <label class="check"><input type="checkbox" id="setSound"> Auslösegeräusch (Klick) abspielen</label>
-        <button class="btn small" id="testSound" type="button">Ton testen</button>
-      </div>
+      <label class="check"><input type="checkbox" id="setSound"> Auslösegeräusch (Klick) abspielen</label>
       <label class="check"><input type="checkbox" id="setAutoPrint"> Nach der Aufnahme automatisch drucken</label>
       <div class="key-test-box">
         <strong>Fernauslöser testen</strong>
@@ -120,7 +117,6 @@
   </div>
 
   <div class="toast" id="toast" hidden></div>
-  <audio id="shutterSound" src="{{ url_for('static', filename='shutter.wav', v=v) }}" preload="auto" playsinline></audio>
 
   <script src="{{ url_for('static', filename='app.js', v=v) }}"></script>
 </body>

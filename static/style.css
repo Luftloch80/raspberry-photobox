@@ -276,8 +276,6 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   gap: 14px;
 }
 .viewer-actions #printBtn { min-width: 280px; font-size: 24px; }
-.sound-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.sound-row .check { flex: 1; }
 .viewer-countdown {
   position: relative;
   flex: none;
