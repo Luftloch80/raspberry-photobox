@@ -317,8 +317,11 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   gap: 12px;
   overflow: hidden;
   background: var(--strip-bg);
-  margin: calc(-16px - var(--safe-t)) calc(-16px - var(--safe-r)) calc(-16px - var(--safe-b)) 0;
-  padding: calc(22px + var(--safe-t)) calc(22px + var(--safe-r)) calc(22px + var(--safe-b)) 22px;
+  /* genau wie die Fotospalte der Kameraseite: unterhalb der Statusleiste,
+     bis an den rechten und unteren Rand, rechts abgerundet */
+  margin: -16px -16px -16px 0;
+  padding: 16px;
+  border-radius: 0 18px 18px 0;
 }
 .viewer-strip button {
   width: 100%;
