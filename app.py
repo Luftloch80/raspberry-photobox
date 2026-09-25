@@ -190,7 +190,6 @@ def clear_photos():
             path.unlink()
             deleted += 1
         (THUMB_DIR / name).unlink(missing_ok=True)
-        (STRIP_DIR / f"strip-{name}").unlink(missing_ok=True)
     return jsonify(ok=True, deleted=deleted)
 
 
@@ -250,6 +249,9 @@ def print_strip():
     if len(paths) != len(ids):
         abort(404)
     STRIP_DIR.mkdir(parents=True, exist_ok=True)
+    # nur den letzten Streifen aufheben (für „Letzten Druck ansehen“)
+    for old in STRIP_DIR.glob("strip-*"):
+        old.unlink(missing_ok=True)
     out = strip_path(ids)
     roll = re.fullmatch(r"(\d+)\s*mm", PRINT_FORMAT)
     if roll:

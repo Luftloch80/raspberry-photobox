@@ -345,6 +345,7 @@
   let series = [];   // Fotos in der Großansicht: [{ photo?, blob?, localUrl?, isNew, uploadFailed? }]
   let current = null; // gerade angezeigtes Foto aus series
   let idleTimer;
+  let printing = null; // laufender Druckauftrag (Promise)
   const strip = $("viewerStrip");
 
   function resetIdle() {
@@ -398,10 +399,12 @@
   function closeViewer() {
     clearTimeout(idleTimer);
     viewer.hidden = true;
-    // Neu aufgenommene, nicht gedruckte Fotos werden beim Verlassen gelöscht
-    const unprinted = series.filter((it) => it.isNew && !it.printed);
-    for (const it of unprinted) it.discard = true; // noch nicht hochgeladene: nach dem Upload löschen
-    deletePhotos(unprinted.filter((it) => it.photo).map((it) => it.photo.id));
+    // Neu aufgenommene Fotos werden beim Verlassen gelöscht – ob gedruckt oder nicht
+    const taken = series.filter((it) => it.isNew);
+    for (const it of taken) it.discard = true; // noch nicht hochgeladene: nach dem Upload löschen
+    const ids = taken.filter((it) => it.photo).map((it) => it.photo.id);
+    // Läuft gerade ein Druckauftrag, erst danach löschen (der Server braucht die Fotos noch)
+    Promise.resolve(printing).finally(() => deletePhotos(ids));
     releaseSeries();
     series = [];
     current = null;
@@ -455,7 +458,12 @@
   }
 
   // Die ganze Serie als Fotostreifen drucken (ein Druckauftrag)
-  async function printItems(items) {
+  function printItems(items) {
+    printing = sendPrint(items).finally(() => { printing = null; });
+    return printing;
+  }
+
+  async function sendPrint(items) {
     const saved = items.filter((it) => it.photo);
     if (!saved.length) return;
     resetIdle();

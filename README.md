@@ -24,8 +24,8 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
   (Seite 58 × ca. 161 mm, `PHOTOBOX_PRINT_FORMAT=58mm`; `80mm` für breite Rollen).
   Mit `PHOTOBOX_PRINT_FORMAT=10x15` kommen auf 10×15-cm-Fotopapier zwei gleiche Streifen
   nebeneinander (Schnittlinie in der Mitte). Einmal pro Serie.
-- Nicht gedruckte Fotos werden beim Verlassen der Fotoansicht gelöscht; beginnt eine neue
-  Serie, werden auch die gedruckten Fotos der vorherigen Gäste **endgültig gelöscht**
+- Bei **„Zurück zur Kamera“** werden die Fotos der Serie **endgültig gelöscht** – ob gedruckt
+  oder nicht. Nur der zuletzt gedruckte Streifen bleibt für „Letzten Druck ansehen“ liegen.
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei
