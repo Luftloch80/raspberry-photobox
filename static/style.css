@@ -50,10 +50,14 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
 
 .stage {
   position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   background: #000;
   overflow: hidden;
+  /* leicht abgerundete Ecken; die Maske sorgt dafür, dass Safari auch das Video beschneidet */
+  border-radius: 18px;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 #video {
@@ -150,12 +154,23 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
 /* ---------- Galerie ---------- */
 
 .gallery {
+  position: relative;
   min-height: 0;
   width: var(--gallery-w);
   display: flex;
   flex-direction: column;
   background: #fff;
   border-left: 0;
+}
+/* Weiß hinter den rechten, abgerundeten Ecken des Kamerabilds */
+.gallery::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 24px;
+  background: #fff;
 }
 
 .gallery h1 { font-size: 20px; margin: 0 0 6px; }
