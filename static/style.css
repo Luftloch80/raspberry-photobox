@@ -8,6 +8,7 @@
   --ok: #3ddc84;
   --warn: #ffb020;
   --gallery-w: clamp(220px, 26vw, 320px);
+  --strip-bg: #f3ece0; /* helles Beige der Fotospalte */
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
@@ -168,10 +169,10 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   width: var(--gallery-w);
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--strip-bg);
   border-left: 0;
 }
-/* Weiß hinter den rechten, abgerundeten Ecken des Kamerabilds */
+/* Spaltenfarbe hinter den rechten, abgerundeten Ecken des Kamerabilds */
 .gallery::before {
   content: "";
   position: absolute;
@@ -179,7 +180,7 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   bottom: 0;
   right: 100%;
   width: 24px;
-  background: #fff;
+  background: var(--strip-bg);
 }
 
 .gallery h1 { font-size: 20px; margin: 0 0 6px; }
@@ -324,7 +325,7 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   align-items: center;
   gap: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--strip-bg);
   margin: calc(-16px - var(--safe-t)) calc(-16px - var(--safe-r)) calc(-16px - var(--safe-b)) 0;
   padding: calc(22px + var(--safe-t)) calc(22px + var(--safe-r)) calc(22px + var(--safe-b)) 22px;
 }
