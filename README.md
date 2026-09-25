@@ -16,7 +16,8 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 ## Funktionen
 
 - Live-Kamerabild der Frontkamera im Vollbild (optional gespiegelt)
-- Ausgelöst wird über **„Drück Mich!“** (oder Fernauslöser), mit Blitz-Effekt
+- Ausgelöst wird über **„Drück Mich!“** (oder Fernauslöser), mit Blitz-Effekt und
+  Kamera-Klickgeräusch (in den Einstellungen abschaltbar)
 - Großer Knopf **„Drück Mich!“** oben in der Mitte für Gäste: kurze Anleitung, Timer (3 oder 5 s)
   und Auslöser; es werden immer **4 Fotos** hintereinander gemacht (Countdown vor jedem Foto)
 - **Drucken** druckt die Serie als **Fotostreifen**: 4 Fotos untereinander, weißer Hintergrund,
