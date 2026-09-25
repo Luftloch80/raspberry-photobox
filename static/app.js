@@ -669,8 +669,8 @@
     for (const b of $("guideTimer").children) b.classList.toggle("active", Number(b.dataset.v) === settings.countdown);
   }
 
-  // Ohne Auslösen schließt sich das Fenster nach 10 s von selbst
-  const GUIDE_MS = 10000;
+  // Ohne Auslösen schließt sich das Fenster nach 30 s von selbst
+  const GUIDE_MS = 30000;
   let guideCloseTimer = null;
 
   function openGuide() {
