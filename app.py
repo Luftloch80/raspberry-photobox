@@ -23,6 +23,7 @@ from flask import (
 from PIL import Image, ImageOps
 
 import status
+from strip import make_sheet
 
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_DIR = Path(os.environ.get("PHOTOBOX_PHOTO_DIR", BASE_DIR / "photos"))
@@ -33,6 +34,9 @@ THUMB_DIR.mkdir(parents=True, exist_ok=True)
 PRINTER = os.environ.get("PHOTOBOX_PRINTER", "")  # leer = CUPS-Standarddrucker
 PRINT_OPTIONS = os.environ.get("PHOTOBOX_PRINT_OPTIONS", "fit-to-page").split()
 MAX_COPIES = int(os.environ.get("PHOTOBOX_MAX_COPIES", "4"))
+# Fotostreifen: 2 = zwei Streifen nebeneinander auf 10×15 cm, 1 = ein Streifen (5×15 cm)
+STRIPS_PER_PAGE = int(os.environ.get("PHOTOBOX_STRIPS_PER_PAGE", "2"))
+STRIP_DIR = PHOTO_DIR / "strips"
 THUMB_SIZE = (480, 480)
 PHOTO_NAME = re.compile(r"^\d{8}-\d{6}-\d{3}\.jpg$")
 
@@ -175,6 +179,7 @@ def clear_photos():
             path.unlink()
             deleted += 1
         (THUMB_DIR / name).unlink(missing_ok=True)
+        (STRIP_DIR / f"strip-{name}").unlink(missing_ok=True)
     return jsonify(ok=True, deleted=deleted)
 
 
@@ -192,16 +197,8 @@ def lp_command(path, copies):
     return cmd
 
 
-@app.post("/api/photos/<name>/print")
-def print_photo(name):
-    path = photo_path(name)
-    data = request.get_json(silent=True) or {}
-    try:
-        copies = int(data.get("copies", 1))
-    except (TypeError, ValueError):
-        copies = 1
-    copies = max(1, min(copies, MAX_COPIES))
-
+def run_lp(path, copies=1):
+    """Datei drucken; gibt (Antwort, Statuscode) zurück."""
     try:
         result = subprocess.run(
             lp_command(path, copies), capture_output=True, text=True, timeout=30
@@ -214,7 +211,37 @@ def print_photo(name):
     if result.returncode != 0:
         msg = (result.stderr or result.stdout).strip() or "Druck fehlgeschlagen"
         return jsonify(error=msg), 500
-    return jsonify(ok=True, copies=copies, job=result.stdout.strip())
+    return jsonify(ok=True, copies=copies, job=result.stdout.strip()), 200
+
+
+@app.post("/api/photos/<name>/print")
+def print_photo(name):
+    path = photo_path(name)
+    data = request.get_json(silent=True) or {}
+    try:
+        copies = int(data.get("copies", 1))
+    except (TypeError, ValueError):
+        copies = 1
+    return run_lp(path, max(1, min(copies, MAX_COPIES)))
+
+
+def strip_path(ids):
+    return STRIP_DIR / f"strip-{ids[0]}"
+
+
+@app.post("/api/print-strip")
+def print_strip():
+    """Die Fotos einer Serie als Fotostreifen drucken (ein Druckauftrag)."""
+    ids = (request.get_json(silent=True) or {}).get("ids", [])
+    if not isinstance(ids, list) or not 1 <= len(ids) <= 4:
+        return jsonify(error="1 bis 4 Fotos erwartet"), 400
+    paths = [photo_path(i) for i in ids if isinstance(i, str)]
+    if len(paths) != len(ids):
+        abort(404)
+    STRIP_DIR.mkdir(parents=True, exist_ok=True)
+    out = strip_path(ids)
+    make_sheet(paths, STRIPS_PER_PAGE).save(out, "JPEG", quality=95, dpi=(300, 300))
+    return run_lp(out, 1)
 
 
 @app.get("/api/printer")

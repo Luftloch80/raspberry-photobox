@@ -19,8 +19,9 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Ausgelöst wird über **„Drück Mich!“** (oder Fernauslöser), mit Blitz-Effekt
 - Großer Knopf **„Drück Mich!“** oben in der Mitte für Gäste: kurze Anleitung, Timer (3 oder 5 s)
   und Auslöser; es werden immer **4 Fotos** hintereinander gemacht (Countdown vor jedem Foto)
-- Serien werden zusammen angezeigt; **Drucken** druckt immer die ganze Serie, je ein Abzug
-  (einmal pro Serie, einzelne Fotos lassen sich nicht löschen)
+- **Drucken** druckt die Serie als **Fotostreifen**: 4 Fotos untereinander, weißer Hintergrund,
+  dünner schwarzer Rahmen. Auf 10×15 cm kommen zwei gleiche Streifen nebeneinander
+  (Schnittlinie in der Mitte, `PHOTOBOX_STRIPS_PER_PAGE=1` für einen Streifen). Einmal pro Serie.
 - Nicht gedruckte Fotos werden beim Verlassen der Fotoansicht gelöscht; beginnt eine neue
   Serie, werden auch die gedruckten Fotos der vorherigen Gäste **endgültig gelöscht**
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
@@ -90,6 +91,10 @@ Nach Änderungen: `sudo systemctl restart photobox`.
 3. Drucker als **Standarddrucker** festlegen, oder seinen Namen in `.env` als
    `PHOTOBOX_PRINTER` eintragen (`lpstat -p` zeigt die Namen).
 4. Testdruck: `lp -o fit-to-page irgendein-bild.jpg`
+5. **Zum Testen ohne echten Drucker:** PDF-Drucker installieren
+   (`sudo apt install printer-driver-cups-pdf`). Er heißt `PDF` und legt jeden Druck als
+   PDF in `~/PDF/` des Benutzers ab, unter dem die Photobox läuft. In `.env`
+   `PHOTOBOX_PRINTER=PDF` setzen und `sudo systemctl restart photobox`.
 
 Tipps:
 - **Canon Selphy** (CP1300/CP1500) wird von `printer-driver-gutenprint` unterstützt.

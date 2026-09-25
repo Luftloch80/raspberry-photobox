@@ -273,7 +273,10 @@
       busy = false;
       shutter.disabled = false;
     }
-    if (items.length) openViewer(items, 0);
+    if (items.length) {
+      openViewer(items, 0);
+      if (settings.autoPrint) autoPrint(items);
+    }
   }
 
   shutter.addEventListener("click", takePhoto);
@@ -438,7 +441,6 @@
       photos.unshift(photo);
       renderThumbs();
       if (series.includes(item)) updateViewerButtons();
-      if (settings.autoPrint) printItems([item]);
     } catch (err) {
       item.uploadFailed = true;
       if (series.includes(item)) updateViewerButtons();
@@ -446,30 +448,32 @@
     }
   }
 
+  // Automatisch drucken, sobald alle Fotos der Serie gespeichert sind
+  async function autoPrint(items) {
+    for (let i = 0; i < 60 && !items.every((it) => it.photo || it.uploadFailed); i++) await sleep(250);
+    if (items.every((it) => it.photo) && !items.every((it) => it.printed)) printItems(items);
+  }
+
+  // Die ganze Serie als Fotostreifen drucken (ein Druckauftrag)
   async function printItems(items) {
     const saved = items.filter((it) => it.photo);
     if (!saved.length) return;
     resetIdle();
     printBtn.disabled = true;
-    let ok = 0;
-    let lastError = "";
-    for (const it of saved) {
-      try {
-        await api(`/api/photos/${encodeURIComponent(it.photo.id)}/print`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ copies: 1 }),
-        });
-        it.printed = true;
-        ok++;
-      } catch (err) {
-        lastError = err.message;
-      }
+    try {
+      await api("/api/print-strip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: saved.map((it) => it.photo.id) }),
+      });
+      for (const it of saved) it.printed = true;
+      toast("Wird gedruckt 🖨️", "ok");
+    } catch (err) {
+      toast("Drucken fehlgeschlagen: " + err.message, "error", 6000);
     }
-    if (ok) toast(ok > 1 ? `${ok} Fotos werden gedruckt 🖨️` : "Wird gedruckt 🖨️", "ok");
-    if (lastError) toast("Drucken fehlgeschlagen: " + lastError, "error", 6000);
     updateViewerButtons();
   }
+
 
   printBtn.addEventListener("click", () => printItems(series.filter((it) => !it.printed)));
   retryUploadBtn.addEventListener("click", () => series.filter((it) => it.uploadFailed && !it.photo).forEach(uploadItem));
