@@ -95,6 +95,7 @@
 
   async function startCamera() {
     const run = ++cameraRun;
+    lastCameraStart = Date.now();
     const hint = $("cameraHint");
     const hintText = $("cameraHintText");
     shutter.disabled = true;
@@ -172,6 +173,50 @@
     shutter.disabled = false;
   }
 
+
+  // ---------------------------------------------------------------------
+  // Kamera-Wächter: iPadOS hält das Kamerabild manchmal an (z. B. wenn es lange
+  // verdeckt ist) – dann bleibt es schwarz oder eingefroren. Alle 2 s prüfen,
+  // ob noch Bilder kommen, und die Kamera sonst wieder anwerfen.
+  // ---------------------------------------------------------------------
+
+  let lastCameraStart = 0;
+  let lastVideoTime = -1;
+  let frozenChecks = 0;
+  let autoRestarts = 0; // automatische Neustarts ohne Erfolg (begrenzt, sonst Endlosschleife)
+
+  function cameraLive() {
+    const track = stream && stream.getVideoTracks()[0];
+    return !!track && track.readyState === "live";
+  }
+
+  function restartCamera(force) {
+    if (!force) {
+      if (Date.now() - lastCameraStart < 8000 || autoRestarts >= 3) return; // nicht ständig neu starten
+      autoRestarts += 1;
+    }
+    frozenChecks = 0;
+    startCamera();
+  }
+
+  // force: nach einer Berührung – dann sofort neu starten, wenn etwas nicht stimmt
+  function ensureCamera(force) {
+    if (busy || document.visibilityState !== "visible") return;
+    if (!cameraLive() || video.readyState < 2) {
+      if (stream || force) restartCamera(force);
+      return;
+    }
+    if (video.paused) video.play().catch(() => restartCamera(force));
+    if (video.currentTime === lastVideoTime) {
+      if (force || ++frozenChecks >= 3) restartCamera(force);
+    } else {
+      frozenChecks = 0;
+      autoRestarts = 0; // Bilder kommen wieder
+      lastVideoTime = video.currentTime;
+    }
+  }
+
+  setInterval(() => ensureCamera(false), 2000);
 
   // Beim Zurückkehren in den Tab (z. B. nach Sperrbildschirm) Kamera neu starten
   document.addEventListener("visibilitychange", () => {
@@ -348,7 +393,7 @@
     // Erster Tastendruck weckt nur den Bildschirmschoner auf
     if (!saver.hidden) {
       e.preventDefault();
-      wakeSaver();
+      wakeSaver(true);
       return;
     }
     const isTrigger = TRIGGER_KEYS.has(e.key);
@@ -662,12 +707,15 @@
     motionTimer = setInterval(checkMotion, 300);
   }
 
-  function wakeSaver() {
+  function wakeSaver(byTouch) {
     saver.hidden = true;
     clearInterval(motionTimer);
     motionTimer = null;
     motionPrev = null;
     noteActivity();
+    // Kamera prüfen; nach einer Berührung darf sie sofort neu gestartet werden
+    lastVideoTime = -1;
+    ensureCamera(byTouch === true);
   }
 
   function checkMotion() {
@@ -696,7 +744,7 @@
     } catch (e) { /* Kamera gerade nicht lesbar */ }
   }
 
-  saver.addEventListener("click", wakeSaver);
+  saver.addEventListener("click", () => wakeSaver(true));
 
   setInterval(() => {
     if (!saver.hidden) return;

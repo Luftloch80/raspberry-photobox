@@ -413,7 +413,9 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   justify-content: center;
   padding: 32px;
   text-align: center;
-  background: radial-gradient(circle at 50% 40%, #3a1320 0%, #140a10 55%, #050507 100%);
+  /* leicht durchscheinend: das Kamerabild bleibt dahinter sichtbar, damit iPadOS
+     es nicht anhält (sonst sieht die Bewegungserkennung nichts) */
+  background: radial-gradient(circle at 50% 40%, rgba(58, 19, 32, .84) 0%, rgba(20, 10, 16, .88) 55%, rgba(5, 5, 7, .92) 100%);
   animation: fade .6s ease-out;
 }
 .saver-content {
