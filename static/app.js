@@ -482,6 +482,7 @@
   async function sendPrint(items) {
     const saved = items.filter((it) => it.photo);
     if (!saved.length) return;
+    const printedSeries = series;
     printBtn.disabled = true;
     try {
       await api("/api/print-strip", {
@@ -491,6 +492,10 @@
       });
       for (const it of saved) it.printed = true;
       toast("Wird gedruckt 🖨️", "ok");
+      // 2 s nach dem Drucken zurück zur Kamera – unabhängig vom Countdown
+      setTimeout(() => {
+        if (!viewer.hidden && series === printedSeries) closeViewer();
+      }, 2000);
     } catch (err) {
       toast("Drucken fehlgeschlagen: " + err.message, "error", 6000);
     }
