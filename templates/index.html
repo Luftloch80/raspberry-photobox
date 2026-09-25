@@ -49,6 +49,13 @@
           <img id="viewerImg" alt="">
         </div>
         <div class="viewer-actions">
+          <div class="viewer-countdown" id="viewerCountdown" aria-label="Zurück zur Kamera in 30 Sekunden">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <circle class="track" cx="32" cy="32" r="28"/>
+              <circle class="ring" id="viewerCountdownRing" cx="32" cy="32" r="28"/>
+            </svg>
+            <span id="viewerCountdownNum">30</span>
+          </div>
           <button class="btn primary big" id="printBtn">
             <svg viewBox="0 0 24 24"><path d="M6 9V3h12v6h1a3 3 0 0 1 3 3v6h-4v3H6v-3H2v-6a3 3 0 0 1 3-3h1Zm2 0h8V5H8v4Zm0 6v4h8v-4H8Z"/></svg>
             <span id="printLabel">Drucken</span>

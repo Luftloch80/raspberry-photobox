@@ -348,10 +348,26 @@
   let printing = null; // laufender Druckauftrag (Promise)
   const strip = $("viewerStrip");
 
+  // Nach 30 s ohne Bedienung zurück zur Kamera – der Countdown steht links neben „Drucken“
+  const VIEWER_SECONDS = 30;
+  const RING = 2 * Math.PI * 28; // Umfang des Countdown-Rings
+  let idleLeft = VIEWER_SECONDS;
+
+  function renderIdle() {
+    $("viewerCountdownNum").textContent = idleLeft;
+    $("viewerCountdownRing").style.strokeDashoffset = RING * (1 - idleLeft / VIEWER_SECONDS);
+    $("viewerCountdown").setAttribute("aria-label", `Zurück zur Kamera in ${idleLeft} Sekunden`);
+  }
+
   function resetIdle() {
-    clearTimeout(idleTimer);
-    // Nach 45 s ohne Bedienung zurück zur Kamera
-    idleTimer = setTimeout(closeViewer, 45000);
+    clearInterval(idleTimer);
+    idleLeft = VIEWER_SECONDS;
+    renderIdle();
+    idleTimer = setInterval(() => {
+      idleLeft -= 1;
+      renderIdle();
+      if (idleLeft <= 0) closeViewer();
+    }, 1000);
   }
 
   // Gedruckt wird immer die ganze Serie (1 Abzug je Foto)
@@ -397,7 +413,7 @@
   }
 
   function closeViewer() {
-    clearTimeout(idleTimer);
+    clearInterval(idleTimer);
     viewer.hidden = true;
     // Neu aufgenommene Fotos werden beim Verlassen gelöscht – ob gedruckt oder nicht
     const taken = series.filter((it) => it.isNew);

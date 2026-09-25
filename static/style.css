@@ -276,6 +276,34 @@ svg { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
   gap: 14px;
 }
 .viewer-actions #printBtn { min-width: 280px; font-size: 24px; }
+.viewer-countdown {
+  position: relative;
+  flex: none;
+  align-self: center;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.viewer-countdown svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.viewer-countdown circle { fill: none; stroke-width: 5; }
+.viewer-countdown .track { stroke: rgba(255, 255, 255, .15); }
+.viewer-countdown .ring {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 175.93;
+  transition: stroke-dashoffset 1s linear;
+}
 /* rechts: alle Fotos der Serie untereinander */
 .viewer-strip {
   width: var(--gallery-w);
