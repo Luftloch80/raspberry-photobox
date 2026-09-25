@@ -683,10 +683,17 @@ body.shooting .guide-btn, body.shooting .settings-btn { opacity: 0; pointer-even
   box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
 }
 
-.panel.guide { width: min(520px, 100%); }
-.guide-steps { margin: 0; padding-left: 22px; line-height: 1.8; font-size: 17px; }
-.guide-option { display: flex; flex-direction: column; gap: 8px; }
-.guide-option > span { color: var(--muted); font-size: 14px; }
+.panel.guide { width: min(520px, 100%); text-align: center; align-items: center; }
+.panel.guide h2 { align-self: center; }
+.guide-step {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+}
+.guide-step .segmented { width: 100%; }
 .segmented.four { grid-template-columns: repeat(4, 1fr); }
 
 
