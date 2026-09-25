@@ -32,6 +32,8 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
   bei Berührung/Tastendruck. Dafür am iPad *Automatische Sperre → Nie* einstellen.
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
   (Leertaste, Enter, Pfeiltasten, Bild auf/ab); Tastentest in den Einstellungen.
+- Das **Zahnrad (Einstellungen) ist versteckt**, damit Gäste nichts verstellen: **3× schnell
+  oben links in die Ecke tippen**, dann erscheint es für 10 Sekunden.
   Hinweis: Die „Lauter“-Taste einfacher Kamera-Auslöser kommt unter iPadOS nicht bei
   Webseiten an – beim „AB Shutter3“ den kleinen Android-Knopf (Enter) verwenden.
 - Galerie mit allen Fotos

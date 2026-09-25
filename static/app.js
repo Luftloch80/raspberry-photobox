@@ -619,7 +619,32 @@
   // ---------------------------------------------------------------------
 
   const settingsModal = $("settings");
-  $("settingsBtn").addEventListener("click", () => {
+  const settingsBtn = $("settingsBtn");
+
+  // Das Zahnrad ist versteckt, damit Gäste nichts verstellen: 3× schnell oben links
+  // in die Ecke tippen, dann erscheint es für 10 Sekunden.
+  const CORNER_TAPS = 3;
+  let cornerTaps = 0;
+  let cornerTimer = null;
+  let gearTimer = null;
+
+  function hideGear() {
+    clearTimeout(gearTimer);
+    settingsBtn.hidden = true;
+  }
+
+  $("settingsCorner").addEventListener("click", () => {
+    cornerTaps += 1;
+    clearTimeout(cornerTimer);
+    cornerTimer = setTimeout(() => { cornerTaps = 0; }, 800); // Tipps müssen schnell hintereinander kommen
+    if (cornerTaps < CORNER_TAPS) return;
+    cornerTaps = 0;
+    settingsBtn.hidden = false;
+    clearTimeout(gearTimer);
+    gearTimer = setTimeout(hideGear, 10000);
+  });
+  settingsBtn.addEventListener("click", () => {
+    hideGear();
     $("setMirror").checked = settings.mirror;
     $("setAutoPrint").checked = settings.autoPrint;
     $("setSound").checked = settings.sound;
