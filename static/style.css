@@ -684,7 +684,6 @@ body.shooting .guide-btn, body.shooting .settings-btn { opacity: 0; pointer-even
 }
 
 .panel.guide { width: min(520px, 100%); text-align: center; align-items: center; }
-.panel.guide h2 { align-self: center; }
 .guide-step {
   width: 100%;
   display: flex;
