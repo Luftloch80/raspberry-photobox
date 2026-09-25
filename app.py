@@ -4,6 +4,7 @@ Liefert das Photobox-Dashboard für das iPad aus, speichert die aufgenommenen
 Fotos und schickt sie per CUPS (`lp`) an den Drucker.
 """
 
+import math
 import os
 import re
 import subprocess
@@ -23,7 +24,7 @@ from flask import (
 from PIL import Image, ImageOps
 
 import status
-from strip import make_sheet
+from strip import make_roll_strip, make_sheet
 
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_DIR = Path(os.environ.get("PHOTOBOX_PHOTO_DIR", BASE_DIR / "photos"))
@@ -35,6 +36,8 @@ PRINTER = os.environ.get("PHOTOBOX_PRINTER", "")  # leer = CUPS-Standarddrucker
 PRINT_OPTIONS = os.environ.get("PHOTOBOX_PRINT_OPTIONS", "fit-to-page").split()
 MAX_COPIES = int(os.environ.get("PHOTOBOX_MAX_COPIES", "4"))
 # Fotostreifen: 2 = zwei Streifen nebeneinander auf 10×15 cm, 1 = ein Streifen (5×15 cm)
+# Druckformat: 58mm / 80mm = ein Streifen auf Bondrucker-Rolle, 10x15 = Fotopapier
+PRINT_FORMAT = os.environ.get("PHOTOBOX_PRINT_FORMAT", "58mm").strip().lower()
 STRIPS_PER_PAGE = int(os.environ.get("PHOTOBOX_STRIPS_PER_PAGE", "2"))
 STRIP_DIR = PHOTO_DIR / "strips"
 # Wo der CUPS-PDF-Drucker (cups-pdf) seine Dateien ablegt – für „Letzten Druck ansehen“
@@ -195,21 +198,21 @@ def clear_photos():
 # Drucken (CUPS)
 # --------------------------------------------------------------------------
 
-def lp_command(path, copies):
+def lp_command(path, copies, extra_options=()):
     cmd = ["lp", "-n", str(copies)]
     if PRINTER:
         cmd += ["-d", PRINTER]
-    for opt in PRINT_OPTIONS:
+    for opt in [*PRINT_OPTIONS, *extra_options]:
         cmd += ["-o", opt]
     cmd.append(str(path))
     return cmd
 
 
-def run_lp(path, copies=1):
+def run_lp(path, copies=1, extra_options=()):
     """Datei drucken; gibt (Antwort, Statuscode) zurück."""
     try:
         result = subprocess.run(
-            lp_command(path, copies), capture_output=True, text=True, timeout=30
+            lp_command(path, copies, extra_options), capture_output=True, text=True, timeout=30
         )
     except FileNotFoundError:
         return jsonify(error="CUPS (lp) ist nicht installiert"), 500
@@ -248,6 +251,13 @@ def print_strip():
         abort(404)
     STRIP_DIR.mkdir(parents=True, exist_ok=True)
     out = strip_path(ids)
+    roll = re.fullmatch(r"(\d+)\s*mm", PRINT_FORMAT)
+    if roll:
+        # Seite genau so groß wie der Streifen (Rollenbreite × Streifenlänge)
+        roll_mm = int(roll.group(1))
+        image, length_mm = make_roll_strip(paths, roll_mm)
+        image.save(out, "JPEG", quality=95, dpi=(300, 300))
+        return run_lp(out, 1, [f"media=Custom.{roll_mm}x{math.ceil(length_mm)}mm"])
     make_sheet(paths, STRIPS_PER_PAGE).save(out, "JPEG", quality=95, dpi=(300, 300))
     return run_lp(out, 1)
 

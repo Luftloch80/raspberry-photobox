@@ -1,8 +1,11 @@
 """Fotostreifen für den Druck: bis zu 4 Fotos untereinander, weißer Hintergrund,
 dünner schwarzer Rahmen – so wie die rechte Spalte auf dem iPad.
 
-Ein Streifen ist 2 × 6 Zoll (ca. 5 × 15 cm). Auf ein 4 × 6-Zoll-Fotopapier (10 × 15 cm)
-passen zwei Streifen nebeneinander; dazwischen eine feine Schnittlinie.
+Formate:
+- „58mm“ / „80mm“: ein einzelner Streifen für Bondrucker (Thermo-Rolle). Die Seite ist
+  so breit wie die Rolle und genau so lang wie der Streifen.
+- „10x15“: ein Streifen ist 2 × 6 Zoll (ca. 5 × 15 cm). Auf ein 4 × 6-Zoll-Fotopapier
+  (10 × 15 cm) passen zwei Streifen nebeneinander; dazwischen eine feine Schnittlinie.
 """
 
 from PIL import Image, ImageDraw, ImageOps
@@ -35,6 +38,34 @@ def make_strip(paths):
         strip.paste(inner, (MARGIN + BORDER, top + BORDER))
         top += photo_h + GAP
     return strip
+
+
+MM = DPI / 25.4                           # Pixel pro Millimeter
+# Rollenbreite → bedruckbare Breite (übliche Bondrucker: 58 mm → 48 mm, 80 mm → 72 mm)
+ROLL_PRINT_WIDTH = {58: 48, 80: 72}
+
+
+def make_roll_strip(paths, roll_mm=58):
+    """Einzelner Streifen für eine Bondrucker-Rolle; gibt (Bild, Länge in mm) zurück."""
+    width = round(roll_mm * MM)
+    side = round((roll_mm - ROLL_PRINT_WIDTH.get(roll_mm, roll_mm - 10)) / 2 * MM)
+    top = bottom = round(4 * MM)
+    gap = round(3 * MM)
+    photo_w = width - 2 * side
+    photo_h = round(photo_w * 3 / 4)
+    paths = list(paths)[:SLOTS]
+    height = top + bottom + len(paths) * photo_h + max(0, len(paths) - 1) * gap
+    strip = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(strip)
+    y = top
+    for path in paths:
+        with Image.open(path) as img:
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            inner = _cover(img, photo_w - 2 * BORDER, photo_h - 2 * BORDER)
+        draw.rectangle([side, y, side + photo_w - 1, y + photo_h - 1], fill="black")
+        strip.paste(inner, (side + BORDER, y + BORDER))
+        y += photo_h + gap
+    return strip, height / MM
 
 
 def make_sheet(paths, strips_per_page=2):

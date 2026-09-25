@@ -20,8 +20,10 @@ kein Internet gebraucht, und die Photobox ist von außen nicht erreichbar.
 - Großer Knopf **„Drück Mich!“** oben in der Mitte für Gäste: kurze Anleitung, Timer (3 oder 5 s)
   und Auslöser; es werden immer **4 Fotos** hintereinander gemacht (Countdown vor jedem Foto)
 - **Drucken** druckt die Serie als **Fotostreifen**: 4 Fotos untereinander, weißer Hintergrund,
-  dünner schwarzer Rahmen. Auf 10×15 cm kommen zwei gleiche Streifen nebeneinander
-  (Schnittlinie in der Mitte, `PHOTOBOX_STRIPS_PER_PAGE=1` für einen Streifen). Einmal pro Serie.
+  dünner schwarzer Rahmen. Standard ist **ein Streifen auf 58-mm-Bondrucker-Rolle**
+  (Seite 58 × ca. 161 mm, `PHOTOBOX_PRINT_FORMAT=58mm`; `80mm` für breite Rollen).
+  Mit `PHOTOBOX_PRINT_FORMAT=10x15` kommen auf 10×15-cm-Fotopapier zwei gleiche Streifen
+  nebeneinander (Schnittlinie in der Mitte). Einmal pro Serie.
 - Nicht gedruckte Fotos werden beim Verlassen der Fotoansicht gelöscht; beginnt eine neue
   Serie, werden auch die gedruckten Fotos der vorherigen Gäste **endgültig gelöscht**
 - Auslösen per Bluetooth-Präsentations-Fernbedienung, Fußpedal oder Tastatur
