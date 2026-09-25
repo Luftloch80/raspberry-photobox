@@ -348,7 +348,7 @@
   let printing = null; // laufender Druckauftrag (Promise)
   const strip = $("viewerStrip");
 
-  // Nach 30 s ohne Bedienung zurück zur Kamera – der Countdown steht links neben „Drucken“
+  // Nach 30 s zurück zur Kamera (läuft durch, auch beim Drucken) – Countdown links neben „Drucken“
   const VIEWER_SECONDS = 30;
   const RING = 2 * Math.PI * 28; // Umfang des Countdown-Rings
   let idleLeft = VIEWER_SECONDS;
@@ -482,7 +482,6 @@
   async function sendPrint(items) {
     const saved = items.filter((it) => it.photo);
     if (!saved.length) return;
-    resetIdle();
     printBtn.disabled = true;
     try {
       await api("/api/print-strip", {
