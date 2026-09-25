@@ -691,7 +691,6 @@ body.shooting .guide-btn, body.shooting .settings-btn { opacity: 0; pointer-even
 
 
 .guide-shoot { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; }
-.guide-shoot span:last-child { color: var(--muted); font-size: 14px; font-weight: 600; }
 .shutter.guide-shutter {
   position: static;
   transform: none;
