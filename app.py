@@ -24,7 +24,7 @@ from flask import (
 from PIL import Image, ImageOps
 
 import status
-from strip import make_roll_strip, make_sheet
+from strip import make_escpos_strip, make_roll_strip, make_sheet
 
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_DIR = Path(os.environ.get("PHOTOBOX_PHOTO_DIR", BASE_DIR / "photos"))
@@ -38,6 +38,8 @@ MAX_COPIES = int(os.environ.get("PHOTOBOX_MAX_COPIES", "4"))
 # Fotostreifen: 2 = zwei Streifen nebeneinander auf 10×15 cm, 1 = ein Streifen (5×15 cm)
 # Druckformat: 58mm / 80mm = ein Streifen auf Bondrucker-Rolle, 10x15 = Fotopapier
 PRINT_FORMAT = os.environ.get("PHOTOBOX_PRINT_FORMAT", "58mm").strip().lower()
+# Bondrucker mit ESC/POS direkt ansteuern (eigene Rasterung + Schnitt), statt über den CUPS-Treiber
+ESCPOS = os.environ.get("PHOTOBOX_ESCPOS", "0").strip().lower() in ("1", "ja", "yes", "true")
 STRIPS_PER_PAGE = int(os.environ.get("PHOTOBOX_STRIPS_PER_PAGE", "2"))
 STRIP_DIR = PHOTO_DIR / "strips"
 # Wo der CUPS-PDF-Drucker (cups-pdf) seine Dateien ablegt – für „Letzten Druck ansehen“
@@ -197,21 +199,23 @@ def clear_photos():
 # Drucken (CUPS)
 # --------------------------------------------------------------------------
 
-def lp_command(path, copies, extra_options=()):
+def lp_command(path, copies, extra_options=(), base_options=None):
     cmd = ["lp", "-n", str(copies)]
     if PRINTER:
         cmd += ["-d", PRINTER]
-    for opt in [*PRINT_OPTIONS, *extra_options]:
+    base = PRINT_OPTIONS if base_options is None else base_options
+    for opt in [*base, *extra_options]:
         cmd += ["-o", opt]
     cmd.append(str(path))
     return cmd
 
 
-def run_lp(path, copies=1, extra_options=()):
+def run_lp(path, copies=1, extra_options=(), base_options=None):
     """Datei drucken; gibt (Antwort, Statuscode) zurück."""
     try:
         result = subprocess.run(
-            lp_command(path, copies, extra_options), capture_output=True, text=True, timeout=30
+            lp_command(path, copies, extra_options, base_options),
+            capture_output=True, text=True, timeout=30,
         )
     except FileNotFoundError:
         return jsonify(error="CUPS (lp) ist nicht installiert"), 500
@@ -257,6 +261,13 @@ def print_strip():
     if roll:
         # Seite genau so groß wie der Streifen (Rollenbreite × Streifenlänge)
         roll_mm = int(roll.group(1))
+        if ESCPOS:
+            # Direktdruck: fertige ESC/POS-Daten unverändert („raw“) an den Drucker
+            bw, data = make_escpos_strip(paths, roll_mm)
+            bw.convert("L").save(out, "JPEG", quality=90)   # für „Letzten Druck ansehen“
+            raw = STRIP_DIR / "druck.escpos"
+            raw.write_bytes(data)
+            return run_lp(raw, 1, base_options=["raw"])
         image, length_mm = make_roll_strip(paths, roll_mm)
         image.save(out, "JPEG", quality=95, dpi=(300, 300))
         return run_lp(out, 1, [f"media=Custom.{roll_mm}x{math.ceil(length_mm)}mm"])

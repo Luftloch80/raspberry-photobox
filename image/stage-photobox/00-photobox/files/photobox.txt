@@ -30,3 +30,10 @@ DRUCKER=
 
 # Druckoptionen, z. B. für Canon Selphy 10x15:  fit-to-page media=Postcard
 DRUCK_OPTIONEN=fit-to-page
+
+# Format des Fotostreifens: 58mm / 80mm (Bondrucker-Rolle) oder 10x15 (Fotopapier)
+DRUCK_FORMAT=58mm
+
+# Bondrucker mit ESC/POS (z. B. Citizen CT-S310II) direkt ansteuern: ja / nein
+# ja = feinere Rasterung der Fotos und sauberer Schnitt am Ende des Streifens
+BONDRUCKER_DIREKT=nein

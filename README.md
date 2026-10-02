@@ -110,6 +110,16 @@ Tipps:
 - **Canon Selphy** (CP1300/CP1500) wird von `printer-driver-gutenprint` unterstützt.
   Für 10×15-Fotos: `PHOTOBOX_PRINT_OPTIONS=fit-to-page media=Postcard`
 - Mögliche Optionen eines Druckers anzeigen: `lpoptions -p <DRUCKER> -l`
+- **ESC/POS-Bondrucker** (z. B. Citizen CT‑S310II, 80 mm): Mit `PHOTOBOX_ESCPOS=1` und
+  `PHOTOBOX_PRINT_FORMAT=80mm` (im Image: `BONDRUCKER_DIREKT=ja`, `DRUCK_FORMAT=80mm` in
+  `photobox.txt`) rastert die Photobox den Streifen selbst in Druckkopf-Auflösung
+  (Floyd‑Steinberg), schickt ihn unverändert an den Drucker und schneidet ihn ab. Der
+  CUPS-Drucker braucht dafür nur eine Warteschlange, z. B. mit dem Treiber
+  [zj-58](https://github.com/klirichek/zj-58) (ZJ‑80). Der Citizen muss per Speicherschalter
+  **MSW5‑3 auf „Printer Class“** stehen, sonst erscheint er nicht in CUPS. Fotos auf
+  Thermopapier werden heller und feiner mit **MSW10‑1 Druckdichte 85–90 %**.
+  Die Fotos werden vorher aufbereitet (Kontrast, Gegenlicht-Ausgleich, Aufhellen); feinjustieren
+  mit `PHOTOBOX_THERMAL_GAMMA` und `PHOTOBOX_THERMAL_EQUALIZE` (siehe `.env.example`).
 
 ## 3. HTTPS im lokalen Netz
 
